@@ -32,6 +32,8 @@ namespace AgesOfCalradiaLogistics
     {
         private static readonly TextObject CalibrationText = new TextObject(
             "{=AOCLogisticsTravelCalibration}Logistics travel pace (base 4; maximum 8)");
+        private static readonly TextObject SupplyPressureText = new TextObject(
+            "{=AOCLogisticsSupplyPressure}Operational supply condition");
         private readonly PartySpeedModel _calculationModel;
 
         internal LogisticsPartySpeedModel(PartySpeedModel installedModel)
@@ -73,8 +75,18 @@ namespace AgesOfCalradiaLogistics
                 ? Math.Min(LogisticsPartySpeedMath.MaximumMapSpeed, nativeResult.ResultNumber)
                 : LogisticsPartySpeedMath.CalibrateLandSpeed(nativeResult.ResultNumber, _calculationModel.BaseSpeed);
 
+            float supplyFactor = party != null && !party.IsCurrentlyAtSea
+                && LogisticsReserveBehavior.Active != null
+                    ? LogisticsReserveBehavior.Active.GetSpeedFactor(party)
+                    : 1f;
+            float suppliedSpeed = calibrated * supplyFactor;
+
             // Preserve native tooltip lines and add only the calibration delta.
             nativeResult.Add(calibrated - nativeResult.ResultNumber, CalibrationText);
+            if (supplyFactor < 1f)
+            {
+                nativeResult.Add(suppliedSpeed - calibrated, SupplyPressureText);
+            }
             nativeResult.LimitMin(LogisticsPartySpeedMath.MinimumMapSpeed);
             nativeResult.LimitMax(LogisticsPartySpeedMath.MaximumMapSpeed);
             return nativeResult;

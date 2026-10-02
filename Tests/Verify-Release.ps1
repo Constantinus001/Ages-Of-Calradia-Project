@@ -1,6 +1,9 @@
 param(
     [string]$ModuleRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$ReleaseArchive,
+    [switch]$EconomySidecarsOnly,
+    [switch]$CampaignSystemsCandidateOnly,
+    [switch]$DeployEconomySidecars,
     [switch]$AllowDirtySource,
     [switch]$IncludeStrategicProvinceDiagnostics,
     [switch]$SkipInstalledBaseline,
@@ -10,6 +13,22 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($CampaignSystemsCandidateOnly) {
+    if ($EconomySidecarsOnly -or $DeployEconomySidecars -or $AllowDirtySource -or $SkipSecurityScan -or $SkipInstalledBaseline -or $IncludeStrategicProvinceDiagnostics -or $ReleaseArchive) {
+        throw 'Framework candidate gate does not accept deployment, bypasses or other release modes.'
+    }
+    if ($CloudVerdictHoldMinutes -lt 10) { throw 'Framework candidate requires at least ten minutes of security hold.' }
+    & (Join-Path $PSScriptRoot 'Package-CampaignSystemsCandidate.ps1') -ModuleRoot $ModuleRoot -SecurityHoldMinutes $CloudVerdictHoldMinutes
+    return
+}
+if ($DeployEconomySidecars -and -not $EconomySidecarsOnly) { throw 'DeployEconomySidecars requires EconomySidecarsOnly.' }
+if ($EconomySidecarsOnly) {
+    if ($AllowDirtySource -or $SkipSecurityScan -or $SkipInstalledBaseline -or $IncludeStrategicProvinceDiagnostics -or $ReleaseArchive) {
+        throw 'Scoped economy release does not accept bypasses or full-Core packaging options.'
+    }
+    & (Join-Path $PSScriptRoot 'Release-EconomySidecars.ps1') -ModuleRoot $ModuleRoot -Deploy:$DeployEconomySidecars -CloudVerdictHoldMinutes $CloudVerdictHoldMinutes
+    return
+}
 
 if (-not $AllowDirtySource) {
     $sourceChanges = @(git -C $ModuleRoot status --porcelain)
@@ -22,6 +41,9 @@ $mainProject = Join-Path $ModuleRoot 'TwelveMonthCalendar.csproj'
 $mcmProject = Join-Path $ModuleRoot 'TwelveMonthCalendar.MCM.csproj'
 $approvedFixesProject = Join-Path $ModuleRoot 'Builds\Approved560CalendarFixes\Approved560CalendarFixes.csproj'
 $campaignLabelVisibilityProject = Join-Path $ModuleRoot 'CampaignLabelVisibility.csproj'
+$politicalBorderOptimizerProject = Join-Path $ModuleRoot 'PoliticalBorderOptimizer.csproj'
+$worldEventsShellRepairProject = Join-Path $ModuleRoot 'WorldEventsShellRepair.csproj'
+$campaignSystemsProject = Join-Path $ModuleRoot 'Modules\AgesOfCalradiaCampaignSystems\AgesOfCalradiaCampaignSystems.csproj'
 $protectedBaselineGate = Join-Path $PSScriptRoot 'Verify-ProtectedPoliticalBaseline.ps1'
 if ($IncludeStrategicProvinceDiagnostics) {
     $runtimeBinDirectory = Join-Path $ModuleRoot 'bin\AgesOfCalradia_Test_Win64_Shipping_Client'
@@ -42,9 +64,15 @@ else {
 $mainDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.dll'
 $approvedFixesDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.Approved560CalendarFixes.dll'
 $campaignLabelVisibilityDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.CampaignLabelVisibility.dll'
+$politicalBorderOptimizerDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.PoliticalBorderOptimizer.dll'
+$worldEventsShellRepairDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.WorldEventsShellRepair.dll'
+$campaignSystemsDll = Join-Path $runtimeBinDirectory 'AgesOfCalradia.CampaignSystems.dll'
 $embeddedModuleProjects = @(
     $approvedFixesProject,
-    $campaignLabelVisibilityProject
+    $campaignLabelVisibilityProject,
+    $politicalBorderOptimizerProject,
+    $worldEventsShellRepairProject,
+    $campaignSystemsProject
 )
 foreach ($project in $embeddedModuleProjects) {
     dotnet msbuild $project /t:Rebuild /p:Configuration=Release /p:OutputPath=$runtimeBinDirectory /v:minimal
@@ -54,13 +82,18 @@ foreach ($project in $embeddedModuleProjects) {
 }
 foreach ($embeddedDll in @(
     $approvedFixesDll,
-    $campaignLabelVisibilityDll
+    $campaignLabelVisibilityDll,
+    $politicalBorderOptimizerDll,
+    $worldEventsShellRepairDll,
+    $campaignSystemsDll
 )) {
     if (-not (Test-Path -LiteralPath $embeddedDll -PathType Leaf)) {
         throw "Embedded module output is missing: $embeddedDll"
     }
 }
 $harmonyPackageDll = Join-Path $env:USERPROFILE '.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll'
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ModuleRoot 'Modules\AgesOfCalradiaCampaignSystems\Tests\Verify-Candidate.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Core Campaign Systems integration verification failed.' }
 $harmonyDll = Join-Path $runtimeBinDirectory '0Harmony.dll'
 if (-not (Test-Path -LiteralPath $harmonyPackageDll -PathType Leaf)) {
     throw "Harmony package output is missing: $harmonyPackageDll"
@@ -185,7 +218,7 @@ $settingsSource = Get-Content -Raw -LiteralPath (Join-Path $ModuleRoot 'Calendar
 $optionsSource = Get-Content -Raw -LiteralPath (Join-Path $ModuleRoot 'CalendarOptionsTabPatch.cs')
 $mcmSettingsSource = Get-Content -Raw -LiteralPath (Join-Path $ModuleRoot 'McmSettings.cs')
 $calendarOptionItemSource = Get-Content -Raw -LiteralPath (Join-Path $ModuleRoot 'GUI\Prefabs\Options\SPOptions\CalendarOptionItem.xml')
-if ($settingsSource -notmatch 'DefaultCampaignTimeScale = 0\.15f' -or
+if ($settingsSource -notmatch 'DefaultCampaignTimeScale = 0\.803f' -or
     $settingsSource -notmatch 'MaximumPacingMultiplier = 4f' -or
     $settingsSource -notmatch 'requestedAutoCampaignTimeScale[\s\S]{0,120}\? DefaultCampaignTimeScale' -or
     $settingsSource -match 'case "Pregnancy Duration \(Months\)"' -or
@@ -217,7 +250,7 @@ if ($settingsSource -notmatch 'DefaultCampaignTimeScale = 0\.15f' -or
     $calendarOptionItemSource -notmatch 'Command\.Click="ExecuteDecrease"' -or
     $calendarOptionItemSource -notmatch 'Command\.Click="ExecuteIncrease"' -or
     $calendarOptionItemSource -notmatch 'Command\.Click="ExecuteToggle"') {
-    throw 'Campaign pacing must reset live to the exact 0.15 automatic default and stay within Bannerlord''s 4x AI-safe limit; Calendar sliders and toggles must write through their view models; and fixed pregnancy days must stay out of the settings UI.'
+    throw 'Campaign pacing must reset live to the exact 0.803 automatic default and stay within Bannerlord''s 4x AI-safe limit; Calendar sliders and toggles must write through their view models; and fixed pregnancy days must stay out of the settings UI.'
 }
 $lordDeathSource = Get-Content -Raw -LiteralPath (Join-Path $ModuleRoot 'CalendarLordDeathModels.cs')
 if ($lordDeathSource -notmatch 'CalendarHeroDeathProbabilityModel' -or
@@ -271,6 +304,11 @@ $optionItemXml = Join-Path $ModuleRoot 'GUI\Prefabs\Options\SPOptions\OptionItem
 $calendarOptionItemXml = Join-Path $ModuleRoot 'GUI\Prefabs\Options\SPOptions\CalendarOptionItem.xml'
 $calendarOptionsGroupedPageXml = Join-Path $ModuleRoot 'GUI\Prefabs\Options\SPOptions\CalendarOptionsGroupedPage.xml'
 $mapBarXml = Join-Path $ModuleRoot 'GUI\Prefabs\Map\MapBar.xml'
+$mapBarSeasonBand = Join-Path $ModuleRoot 'GUI\SpriteParts\aoc_mapbar\aoc_mapbar_season_band_legible.png'
+$mapBarCompactCrown = Join-Path $ModuleRoot 'GUI\SpriteParts\aoc_mapbar\aoc_mapbar_season_crown_compact.png'
+$mapBarNotchBacking = Join-Path $ModuleRoot 'GUI\SpriteParts\aoc_mapbar\aoc_mapbar_notch_backing.png'
+$mapBarMedallion = Join-Path $ModuleRoot 'GUI\SpriteParts\aoc_mapbar\aoc_mapbar_medallion_ring_oval.png'
+$mapBarBrushes = Join-Path $ModuleRoot 'GUI\Brushes\AocMapBar.xml'
 $worldCalendarXml = Join-Path $ModuleRoot 'GUI\Prefabs\WorldCalendar\WorldCalendar.xml'
 $worldCalendarViewModelSource = Join-Path $ModuleRoot 'CalendarWorldLedgerVM.cs'
 $worldCalendarSpriteData = Join-Path $ModuleRoot 'GUI\RealisticCalendarTweaksSpriteData.xml'
@@ -302,7 +340,7 @@ else {
         -not (Test-Path -LiteralPath (Join-Path $_.FullName 'REFUGE_AUTHORING_REQUIRED.txt') -PathType Leaf)
     })
 }
-$runtimeFiles = @($moduleXml, $moduleStrings, $readme, $harmonyDll, $mainDll, $approvedFixesDll, $campaignLabelVisibilityDll, $mcmDll, $mcmCoreDll, $optionsXml, $optionItemXml, $calendarOptionItemXml, $calendarOptionsGroupedPageXml, $mapBarXml, $worldCalendarXml, $worldCalendarSpriteData, $worldCalendarSpriteConfig, $worldCalendarMap, $worldCalendarSheet, $worldEventsSkinManifest)
+$runtimeFiles = @($moduleXml, $moduleStrings, $readme, $harmonyDll, $mainDll, $approvedFixesDll, $campaignLabelVisibilityDll, $mcmDll, $mcmCoreDll, $optionsXml, $optionItemXml, $calendarOptionItemXml, $calendarOptionsGroupedPageXml, $mapBarXml, $mapBarBrushes, $mapBarSeasonBand, $mapBarCompactCrown, $mapBarNotchBacking, $mapBarMedallion, $worldCalendarXml, $worldCalendarSpriteData, $worldCalendarSpriteConfig, $worldCalendarMap, $worldCalendarSheet, $worldEventsSkinManifest)
 foreach ($path in $runtimeFiles) {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "Expected release output is missing: $path"
@@ -311,8 +349,8 @@ foreach ($path in $runtimeFiles) {
 $requiredWorldEventsSkinFiles = @(Get-Content -LiteralPath $worldEventsSkinManifest |
     ForEach-Object { $_.Trim() } |
     Where-Object { $_ -and -not $_.StartsWith('#') })
-if ($requiredWorldEventsSkinFiles.Count -ne 19) {
-    throw "World Events runtime asset manifest must contain exactly 19 active skin files; found $($requiredWorldEventsSkinFiles.Count)."
+if ($requiredWorldEventsSkinFiles.Count -ne 24) {
+    throw "World Events runtime asset manifest must contain exactly 24 active skin files; found $($requiredWorldEventsSkinFiles.Count)."
 }
 $missingWorldEventsSkinFiles = @($requiredWorldEventsSkinFiles | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $worldEventsSkinRoot $_) -PathType Leaf)
@@ -386,20 +424,31 @@ if ($campButton.Count -ne 1 -or $campButton[0].IsVisible -ne '@IsRefugeSystemEna
     throw 'The map-bar camp button must be bound to the optional standalone refuge integration.'
 }
 $centerPanel = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]'))
-if ($centerPanel.Count -ne 1 -or $centerPanel[0].HorizontalAlignment -ne 'Center' -or $centerPanel[0].PositionXOffset -ne '10' -or $centerPanel[0].VerticalAlignment -ne 'Bottom' -or $centerPanel[0].SuggestedWidth -ne '420' -or $centerPanel[0].SuggestedHeight -ne '60') {
+if ($centerPanel.Count -ne 1 -or $centerPanel[0].HorizontalAlignment -ne 'Center' -or $centerPanel[0].PositionXOffset -ne '0' -or $centerPanel[0].VerticalAlignment -ne 'Bottom' -or $centerPanel[0].SuggestedWidth -ne '620' -or $centerPanel[0].SuggestedHeight -ne '97') {
     throw 'Map bar center panel must remain bottom-centered for resolution-independent placement.'
 }
-$calendarDate = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/TextWidget[@Text="@CalendarDateLine"]'))
-$seasonLabel = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/TextWidget[@Text="@SeasonYearLine"]'))
-if ($calendarDate.Count -ne 1 -or [int]$calendarDate[0].SuggestedWidth -ne 150 -or $calendarDate[0].PositionXOffset -ne '40' -or $calendarDate[0].PositionYOffset -ne '-6' -or $calendarDate[0].'Brush.FontSize' -ne '18') {
+$calendarDate = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/TextWidget[@Id="CalendarDateText"]'))
+$calendarYear = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/MapYearTextWidget[@Id="CalendarYearText"]'))
+if ($calendarDate.Count -ne 1 -or [int]$calendarDate[0].SuggestedWidth -ne 190 -or $calendarDate[0].PositionXOffset -ne '18' -or $calendarDate[0].PositionYOffset -ne '18' -or $calendarDate[0].'Brush.FontSize' -ne '28') {
     throw 'Map bar calendar date must use the upper line of the widened two-line calendar block.'
 }
-if ($seasonLabel.Count -ne 1 -or [int]$seasonLabel[0].SuggestedWidth -ne 150 -or $seasonLabel[0].PositionXOffset -ne '40' -or $seasonLabel[0].PositionYOffset -ne '12' -or $seasonLabel[0].'Brush.FontSize' -ne '18') {
-    throw 'Map bar season and year must use the lower line of the widened two-line calendar block.'
+if ($calendarYear.Count -ne 1 -or [int]$calendarYear[0].SuggestedWidth -ne 100 -or $calendarYear[0].PositionXOffset -ne '-3' -or $calendarYear[0].PositionYOffset -ne '54' -or $calendarYear[0].SourceText -ne '@SeasonYearLine') {
+    throw 'Map bar year must begin the compact lower row before the adjacent clock.'
 }
-$clockLabel = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/TextWidget[@Text="@TimeOfDay"]'))
-if ($clockLabel.Count -ne 1 -or [int]$clockLabel[0].SuggestedWidth -ne 70 -or $clockLabel[0].PositionXOffset -ne '47' -or $clockLabel[0].PositionYOffset -ne '0' -or $clockLabel[0].'Brush.TextHorizontalAlignment' -ne 'Center' -or $clockLabel[0].'Brush.FontSize' -ne '14') {
-    throw 'Map bar clock must occupy the former season position just right of the sundial.'
+$seasonAssembly = @($mapBar.SelectNodes('//MapCurrentTimeVisualWidget[@Id="CenterPanel"]/Children/TextureWidget[@Id="SeasonCrown"]'))
+$seasonButton = @($mapBar.SelectNodes('//ButtonWidget[@Id="MapTimeDialButton"]'))
+$dayNightDisc = @($mapBar.SelectNodes('//ButtonWidget[@Id="MapTimeDialButton"]/Children/MapTimeImageBrushWidget[@Id="VanillaDayNightDisc"]'))
+$dialFrame = @($mapBar.SelectNodes('//ButtonWidget[@Id="MapTimeDialButton"]/Children/TextureWidget[@Id="MapTimeDialFrame"]'))
+if ($seasonAssembly.Count -ne 1 -or $seasonAssembly[0].TextureProviderName -ne 'AocMapBarSeasonCrownTextureProvider' -or
+    $seasonAssembly[0].SuggestedWidth -ne '152' -or $seasonAssembly[0].SuggestedHeight -ne '70' -or
+    $seasonAssembly[0].VerticalAlignment -ne 'Top' -or $seasonAssembly[0].PositionYOffset -ne '-45' -or
+    $seasonButton.Count -ne 1 -or $seasonButton[0].SuggestedWidth -ne '114' -or
+    $seasonButton[0].VerticalAlignment -ne 'Top' -or $seasonButton[0].PositionYOffset -ne '-16' -or
+    $dayNightDisc.Count -ne 1 -or $dayNightDisc[0].Brush -ne 'AocMapTimeImageLarge' -or
+    $dayNightDisc[0].DayTime -ne '@Time' -or $dayNightDisc[0].CircularClipEnabled -ne 'true' -or
+    $dayNightDisc[0].CircularClipRadius -ne '43' -or
+    $dialFrame.Count -ne 1 -or $dialFrame[0].TextureProviderName -ne 'AocMapBarMedallionRimTextureProvider') {
+    throw 'Map bar must contain the measured raised season assembly and untouched native animated dial.'
 }
 
 $binaryText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($mainDll))
@@ -478,7 +527,7 @@ try {
         (Join-Path $moduleStage 'SceneObj') | Out-Null
     Copy-Item -LiteralPath $moduleXml, $readme -Destination $moduleStage
     Copy-Item -LiteralPath $runtimeContentDirectories -Destination $moduleStage -Recurse
-    Copy-Item -LiteralPath $harmonyDll, $mainDll, $approvedFixesDll, $campaignLabelVisibilityDll, $mcmDll, $mcmCoreDll -Destination (Join-Path $moduleStage 'bin\Win64_Shipping_Client')
+    Copy-Item -LiteralPath $harmonyDll, $mainDll, $approvedFixesDll, $campaignLabelVisibilityDll, $politicalBorderOptimizerDll, $worldEventsShellRepairDll, $campaignSystemsDll, $mcmDll, $mcmCoreDll -Destination (Join-Path $moduleStage 'bin\Win64_Shipping_Client')
     foreach ($sceneDirectory in $runtimeSceneDirectories) {
         Get-ChildItem -LiteralPath $sceneDirectory.FullName -Recurse -File |
             Where-Object { $_.FullName -notmatch '[\\/]ShaderCache[\\/]' } |
@@ -506,6 +555,9 @@ $expectedEntries = @(
     'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.dll',
     'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.Approved560CalendarFixes.dll',
     'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.CampaignLabelVisibility.dll',
+    'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.PoliticalBorderOptimizer.dll',
+    'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.WorldEventsShellRepair.dll',
+    'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.CampaignSystems.dll',
     'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.MCM.dll',
     'AgesOfCalradia/bin/Win64_Shipping_Client/MCMv5.dll'
 )

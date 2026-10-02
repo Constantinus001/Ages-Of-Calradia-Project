@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Module>
+  <Name value="AOC Workshop Procurement (Candidate)" />
+  <Id value="AgesOfCalradiaWorkshopProcurement" /><Version value="v0.1.0" />
+  <SingleplayerModule value="true" /><MultiplayerModule value="false" /><Official value="false" />
+  <DefaultModule value="false" /><ModuleCategory value="Singleplayer" /><ModuleType value="Community" />
+  <DependedModules>
+    <DependedModule Id="Native" DependentVersion="v1.4.8" />
+    <DependedModule Id="SandBoxCore" DependentVersion="v1.4.8" />
+    <DependedModule Id="Sandbox" DependentVersion="v1.4.8" />
+    <DependedModule Id="AgesOfCalradia" DependentVersion="v1.5.14" />
+  </DependedModules>
+  <SubModules><SubModule>
+    <Name value="AOC Workshop Procurement" /><DLLName value="AgesOfCalradia.WorkshopProcurement.dll" />
+    <SubModuleClassType value="AgesOfCalradia.WorkshopProcurement.ProcurementSubModule" />
+    <Tags><Tag key="DedicatedServerType" value="none" /><Tag key="IsNoRenderModeElement" value="false" /></Tags>
+  </SubModule></SubModules>
+</Module>

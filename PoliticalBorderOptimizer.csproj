@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9A16880D-40CE-470A-A423-7944DE5570FD}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>AgesOfCalradia.PoliticalBorderOptimizer</RootNamespace>
+    <AssemblyName>AgesOfCalradia.PoliticalBorderOptimizer</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <Deterministic>true</Deterministic>
+    <BannerlordDir Condition=" '$(BannerlordDir)' == '' ">C:\Program Files\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordDir>
+    <OutputPath>tmp\political-border-optimizer\bin\Win64_Shipping_Client\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml" />
+    <Reference Include="0Harmony">
+      <HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Core">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.CampaignSystem">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.DotNet">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Library">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ObjectSystem">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.ObjectSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <Compile Include="PoliticalBorderEagerWarmup.cs" />
+    <Compile Include="PoliticalBorderLoadingGate.cs" />
+    <Compile Include="PoliticalBorderLoadingDismissalPatch.cs" />
+    <Compile Include="PoliticalBorderGeometryCache.cs" />
+    <Compile Include="PoliticalBorderArtifactDiagnostics.cs" />
+    <Compile Include="PoliticalBorderGeometryDiagnostics.cs" />
+    <Compile Include="PoliticalBorderGeometryRepair.cs" />
+    <Compile Include="PublishedBorderLayoutPresence.cs" />
+    <Compile Include="PoliticalBorderPublishedExactProbeMemoization.cs" />
+    <Compile Include="PoliticalBorderEditorDocument.cs" />
+    <Compile Include="PoliticalBorderGeneratedSnapshot.cs" />
+    <Compile Include="PoliticalBorderGeneratedSnapshotExporter.cs" />
+    <Compile Include="PoliticalBorderAuthoredOverrides.cs" />
+    <Compile Include="PoliticalBorderCoastalFillClipper.cs" />
+    <Compile Include="PoliticalBorderCoastalContourSmoother.cs" />
+    <Compile Include="PoliticalBorderChainBuilder.cs" />
+    <Compile Include="PoliticalBorderStrokeTessellator.cs" />
+    <Compile Include="PoliticalBorderRibbonDiagnosticSamples.cs" />
+    <Compile Include="PoliticalBorderRibbonRebuilder.cs" />
+    <Compile Include="PoliticalBorderOptimizerSubModule.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -16,9 +16,15 @@ compatibility sidecar.
 - War proposal cadence uses the corrected 87-day post-peace cooldown.
 - Marriage, allegiance, kingdom, and similar scene notifications use valid
   Gregorian dates.
-- World Events UI strategic-map town names remain visible at every zoom and use
-  a larger readable label. Campaign-map settlement names still disappear when
-  the political overview begins at altitude 580.
+- World Events UI strategic-map town names remain unchanged. Campaign-map town
+  nameplates are hidden when the political overview begins at altitude 580;
+  below that threshold all settlement nameplates use Bannerlord's native
+  dimensions and visibility rules. The campaign camera's maximum zoom-out
+  height is doubled for full-map border work.
+- Political drafting mode retains native faction colours, inland ownership
+  borders, and faction-name labels. World-space ocean and lake shorelines use
+  land-elevated coastal ribbons while IslandExclusion, ordinary
+  banners, and World Events UI remain unchanged.
 
 ## Builds
 

@@ -2,7 +2,7 @@
 <Module>
   <Name value="AOC SYSTEMS R &amp; S" />
   <Id value="AgesOfCalradiaSystemsRS" />
-  <Version value="v1.0.0" />
+  <Version value="v1.1.0" />
   <SingleplayerModule value="true" />
   <MultiplayerModule value="false" />
   <Official value="false" />
@@ -20,6 +20,7 @@
     <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v1.4.8" />
     <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v1.4.8" />
     <DependedModuleMetadata id="AgesOfCalradia" order="LoadBeforeThis" version="v1.5.14" />
+    <DependedModuleMetadata id="NavalDLC" order="LoadBeforeThis" version="v1.2.8" optional="true" />
     <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="v1.4.8" optional="true" />
   </DependedModuleMetadatas>
   <IncompatibleModules>
@@ -41,6 +42,15 @@
       <Name value="AOC SYSTEMS R &amp; S: Succession" />
       <DLLName value="AgesOfCalradiaSuccession.dll" />
       <SubModuleClassType value="AgesOfCalradiaSuccession.SuccessionSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="AOC SYSTEMS R &amp; S: Shipwright" />
+      <DLLName value="AgesOfCalradiaReligions.Shipwright.dll" />
+      <SubModuleClassType value="AgesOfCalradiaReligions.Shipwright.ShipwrightSubModule" />
       <Tags>
         <Tag key="DedicatedServerType" value="none" />
         <Tag key="IsNoRenderModeElement" value="false" />

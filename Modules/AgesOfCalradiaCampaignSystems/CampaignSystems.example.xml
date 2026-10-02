@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Optional override: Documents/Mount and Blade II Bannerlord/Configs/AgesOfCalradia/CampaignSystems.xml
+     Loaded at campaign start. Defaults below include bounded early replenishment.
+     Durations use campaign days; distance uses Bannerlord's land-route distance.
+     Existing orders retain their quoted costs, ETA, return delay and stock lifetime.
+     Calendar speed and quest scaling remain in CalendarSettingsState, not this file. -->
+<CampaignSystems schema="1">
+  <Procurement BatchesPerOrder="3" CapitalReserveDays="7" SupplierReserveBatches="7" IronSupplierReserveDays="0"
+    MinimumSupplierStock="10" FoodCategoryFloor="100" FoodStoresFloor="100" FoodBufferDays="30"
+    GrapeCategoryFloor="10" ReorderBufferDays="1" MaximumAdaptiveBatches="0" DeliveryDelayCostWeight="0" WineExpenseCoverage="0"
+    MaximumDistance="300" FreightDistancePerDay="100" HandlingDays="1"
+    FreightBase="2" FreightUnitDistance="100" BlockedReturnDays="14" StockLifetimeDays="30" />
+</CampaignSystems>

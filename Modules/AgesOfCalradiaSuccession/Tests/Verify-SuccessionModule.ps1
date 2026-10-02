@@ -3,6 +3,8 @@ $module = Split-Path -Parent $PSScriptRoot
 $manifest = [xml](Get-Content -LiteralPath (Join-Path $module 'SubModule.xml') -Raw)
 $project = Get-Content -LiteralPath (Join-Path $module 'AgesOfCalradiaSuccession.csproj') -Raw
 $behavior = Get-Content -LiteralPath (Join-Path $module 'SuccessionCampaignBehavior.cs') -Raw
+$deathIntegration = Get-Content -LiteralPath (Join-Path $module 'SuccessionDeathIntegration.cs') -Raw
+$electionPatches = Get-Content -LiteralPath (Join-Path $module 'SuccessionElectionPatches.cs') -Raw
 $bridge = Get-Content -LiteralPath (Join-Path $module 'SuccessionReligionBridge.cs') -Raw
 $readme = Get-Content -LiteralPath (Join-Path $module 'README.md') -Raw
 
@@ -18,12 +20,19 @@ foreach ($file in @('SuccessionSubModule.cs','SuccessionCampaignBehavior.cs','Su
 if ($bridge -notmatch 'ReligionService.GetHeroReligion' -or $bridge -notmatch 'ReligionService.GetRealmReligion') {
     throw 'Succession religion bridge is not using the public read-only service.'
 }
-if ($behavior -notmatch 'KingSelectionKingdomDecision' -or $behavior -notmatch 'RemoveDecision' -or $behavior -notmatch 'ChangeRulingClanAction.Apply') {
+if ($deathIntegration -notmatch 'KingSelectionKingdomDecision' -or $deathIntegration -notmatch 'RemoveDecision' -or $behavior -notmatch 'ChangeRulingClanAction.Apply') {
     throw 'Verified hereditary replacement path is missing.'
 }
 if ($behavior -match 'ChangeKingdomAction|DestroyKingdomAction|Harmony') {
     throw 'Succession behavior contains an unsafe kingdom mutation or runtime patch.'
 }
+if ($behavior -match 'KingdomDecisionAdded.AddNonSerializedListener' -or $behavior -notmatch 'HeroKilledEvent.AddNonSerializedListener' -or
+    $behavior -notmatch 'TickEvent.AddNonSerializedListener') { throw 'Death-driven deferred dispatch contract is missing or the unsafe late decision listener remains.' }
+foreach ($file in @('SuccessionDeathIntegration.cs','SuccessionDispatchQueue.cs','SuccessionElectionPatches.cs')) {
+    if ($project -notmatch [regex]::Escape($file)) { throw "Missing dispatch compile item: $file" }
+}
+if ($deathIntegration -notmatch 'AOC_Succession_Dispatch_v1' -or $electionPatches -notmatch 'BeforeAddDecision' -or
+    $electionPatches -notmatch 'BeforeApplyChosenOutcome') { throw 'Persisted dispatch or ruler-only Harmony guards are missing.' }
 if ($readme -notmatch 'does not turn inheritance into an election') {
     throw 'No-election succession boundary is not documented.'
 }

@@ -35,6 +35,17 @@ Before changing code, read [`docs/CODE_QUALITY.md`](docs/CODE_QUALITY.md).
 
 ## Project-specific cautions
 
+- **Diagnostic run closeout:** Immediately after analyzing a completed diagnostic
+  run, archive that run in the same workflow; do not leave archiving until the
+  next test preparation. Preserve its raw logs, checkpoint/readiness records,
+  relevant incident packages, analysis reports, and build/settings provenance
+  together with a hash manifest. Verify the archive before removing only the
+  duplicated files belonging to that closed run from the active capture area.
+  Never archive or move files belonging to a live writer or a newer session.
+  If closure, analysis, or archive verification is uncertain, preserve originals
+  and report the blocker. Report the archive location with the findings.
+  Archiving does not authorize rearming, loading saves, or restarting the game.
+
 - **Protected political renderer:** `bin/Win64_Shipping_Client/AgesOfCalradia.dll`
   is an immutable user-approved artifact. Its required SHA-256 is
   `560F1B5181F8CC2EFE51564D8675FD3089E722606FA55B0B166D36ECD9868D8E`.

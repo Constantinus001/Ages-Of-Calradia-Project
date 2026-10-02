@@ -252,8 +252,8 @@ namespace TwelveMonthCalendar
                     delegate(bool value) { Apply(autoCampaignTimeScale: value); }),
                 new CalendarNumericOptionData(
                     "Campaign Time Scale",
-                    0.01f,
-                    1.0f,
+                    CalendarSettingsState.MinimumCampaignTimeScale,
+                    CalendarSettingsState.MaximumCampaignTimeScale,
                     false,
                     0,
                     delegate { return CalendarSettingsState.CampaignTimeScale; },
@@ -266,7 +266,7 @@ namespace TwelveMonthCalendar
                     1,
                     delegate { return CalendarSettingsState.FastForwardTimeMultiplier; },
                     delegate(float value) { Apply(fastForwardTimeMultiplier: value); }),
-                new CalendarActionOptionData("Reset Pacing", "Reset Category", "Restores automatic pacing, 0.15 campaign scale, and 4x fast-forward.", ResetPacingCategory)
+                new CalendarActionOptionData("Reset Pacing", "Reset Category", "Restores campaign pacing: about three hours normally and ninety minutes fast-forward per year.", ResetPacingCategory)
             };
             List<IOptionData> lightingOptions = new List<IOptionData>
             {
@@ -902,7 +902,7 @@ namespace TwelveMonthCalendar
             bool requestedAutoTimeScale = autoCampaignTimeScale ?? CalendarSettingsState.AutoCampaignTimeScale;
             // Only the checkbox enables automatic pacing. A slider edit is a
             // manual choice even when its resulting value is exactly the
-            // automatic 0.15 default.
+            // automatic 0.803 default.
             float requestedFastForwardTimeMultiplier = fastForwardTimeMultiplier
                 ?? CalendarSettingsState.FastForwardTimeMultiplier;
             bool requestedCalendarMonthPregnancy = useCalendarMonthPregnancy
@@ -1078,8 +1078,8 @@ namespace TwelveMonthCalendar
             Apply(
                 campaignTimeScale: CalendarSettingsState.DefaultCampaignTimeScale,
                 autoCampaignTimeScale: true,
-                fastForwardTimeMultiplier: 4f);
-            CompleteCategoryReset("Pacing", "Pacing was reset to automatic 0.15 scale and 4x fast-forward.");
+                fastForwardTimeMultiplier: CalendarSettingsState.DefaultFastForwardTimeMultiplier);
+            CompleteCategoryReset("Pacing", "Pacing was reset to about three hours normally and ninety minutes fast-forward per year.");
         }
 
         private void ResetLightingCategory()
@@ -1167,7 +1167,7 @@ namespace TwelveMonthCalendar
                     case "Use Ordinal Day Suffixes":
                         return "Displays dates as 1st, 2nd, 3rd, and so on. 11th, 12th, and 13th use the correct th suffix.";
                     case "Automatic Campaign Time Scale":
-                        return "Keeps campaign pacing at the fixed default of 0.150. Turning it off lets you choose a different slider value.";
+                        return "Targets about three real hours per calendar year at normal speed. Turning it off lets you choose a different slider value.";
                     case "Campaign Time Scale":
                         return "Controls how quickly campaign time advances when automatic pacing is disabled. Lower values are slower.";
                     case "Fast-Forward Speed Multiplier":

@@ -31,7 +31,8 @@ namespace AgesOfCalradiaSuccession
             foreach (Clan clan in kingdom.Clans)
             {
                 Hero hero = clan == null ? null : clan.Leader;
-                if (!IsEligible(clan, hero, law)) continue;
+                if (!IsEligibleClanLeader(kingdom, hero) || hero.Clan != clan
+                    || (law == SuccessionLaw.AgnaticPrimogeniture && hero.IsFemale)) continue;
 
                 int kinship = KinshipScore(hero, previousMonarch);
                 bool sameHouse = dynasty != null && clan == dynasty;
@@ -58,34 +59,38 @@ namespace AgesOfCalradiaSuccession
             foreach (Clan clan in kingdom.Clans)
             {
                 Hero hero = clan == null ? null : clan.Leader;
-                if (clan == null || hero == null || clan.IsEliminated || !hero.IsAlive || !hero.IsActive) continue;
-                int score = (clan == dynasty ? 100000 : 0)
-                    + (hero.Age >= AdultAge ? 10000 : 0)
-                    + Math.Max(0, clan.Tier) * 500
-                    + (int)Math.Round(Math.Max(0f, clan.Renown));
-                claims.Add(new SuccessionClaim(hero, clan, score,
+                if (!IsEligibleClanLeader(kingdom, hero, false) || hero.Clan != clan) continue;
+                claims.Add(new SuccessionClaim(hero, clan, 0,
                     clan == dynasty ? "emergency continuation of the ruling house" : "deterministic emergency acclamation"));
             }
-            return claims.OrderByDescending(c => c.Score).ThenBy(c => c.Hero.StringId, StringComparer.Ordinal).ToList();
+            // Lexicographic priorities cannot be overturned by extreme renown.
+            // Emergency scores expose that order, not an overflow-prone sum.
+            return claims.OrderByDescending(c => c.Clan == dynasty)
+                .ThenByDescending(c => c.Hero.Age >= AdultAge)
+                .ThenByDescending(c => c.Clan.Tier)
+                .ThenByDescending(c => float.IsNaN(c.Clan.Renown) ? 0f : Math.Max(0f, c.Clan.Renown))
+                .ThenBy(c => c.Hero.StringId, StringComparer.Ordinal)
+                .Select((c, index) => new SuccessionClaim(c.Hero, c.Clan, claims.Count - index, c.Explanation)).ToList();
         }
 
-        internal static Hero FindLawfulDynasticHeir(Clan dynasty, Hero previousMonarch, SuccessionLaw law)
+        internal static Hero FindLawfulDynasticHeir(Clan dynasty, Hero previousMonarch, SuccessionLaw law, Kingdom realm = null)
         {
             if (dynasty == null) return null;
+            realm = realm ?? dynasty.Kingdom;
             if (law == SuccessionLaw.HouseSeniority || law == SuccessionLaw.NomadicHouseSeniority)
             {
                 IOrderedEnumerable<Hero> seniority;
                 if (law == SuccessionLaw.NomadicHouseSeniority)
-                    seniority = dynasty.Heroes.Where(h => IsLivingDynast(h) && h != previousMonarch).OrderBy(h => h.IsFemale).ThenByDescending(h => h.Age);
+                    seniority = dynasty.Heroes.Where(h => IsLivingDynast(h, realm) && h != previousMonarch).OrderBy(h => h.IsFemale).ThenByDescending(h => h.Age);
                 else
-                    seniority = dynasty.Heroes.Where(h => IsLivingDynast(h) && h != previousMonarch).OrderByDescending(h => h.Age);
+                    seniority = dynasty.Heroes.Where(h => IsLivingDynast(h, realm) && h != previousMonarch).OrderByDescending(h => h.Age);
                 return seniority.ThenBy(h => h.StringId, StringComparer.Ordinal).FirstOrDefault();
             }
 
             if (previousMonarch != null)
             {
-                HashSet<Hero> visited = new HashSet<Hero>();
-                Hero descendant = FirstLivingInBranches(OrderedChildren(previousMonarch, law), law, visited);
+                HashSet<Hero> visited = new HashSet<Hero> { previousMonarch };
+                Hero descendant = FirstLivingInBranches(OrderedChildren(previousMonarch, law), law, visited, realm);
                 if (descendant != null) return descendant;
 
                 IEnumerable<Hero> siblings = dynasty.Heroes
@@ -93,24 +98,25 @@ namespace AgesOfCalradiaSuccession
                 siblings = OrderByPreference(siblings, law);
                 foreach (Hero sibling in siblings)
                 {
-                    if (GenderAllowed(sibling, law) && IsLivingDynast(sibling)) return sibling;
-                    Hero branch = FirstLivingInBranches(OrderedChildren(sibling, law), law, visited);
+                    if (!GenderAllowed(sibling, law)) continue;
+                    if (IsLivingDynast(sibling, realm)) return sibling;
+                    Hero branch = FirstLivingInBranches(OrderedChildren(sibling, law), law, visited, realm);
                     if (branch != null) return branch;
                 }
             }
 
-            return OrderByPreference(dynasty.Heroes.Where(h => IsLivingDynast(h) && h != previousMonarch), law)
+            return OrderByPreference(dynasty.Heroes.Where(h => IsLivingDynast(h, realm) && h != previousMonarch), law)
                 .FirstOrDefault(h => GenderAllowed(h, law));
         }
 
-        private static Hero FirstLivingInBranches(IEnumerable<Hero> branches, SuccessionLaw law, HashSet<Hero> visited)
+        private static Hero FirstLivingInBranches(IEnumerable<Hero> branches, SuccessionLaw law, HashSet<Hero> visited, Kingdom realm)
         {
             foreach (Hero child in branches)
             {
                 if (child == null || !visited.Add(child)) continue;
-                if (GenderAllowed(child, law) && IsLivingDynast(child)) return child;
+                if (GenderAllowed(child, law) && IsLivingDynast(child, realm)) return child;
                 if (law == SuccessionLaw.AgnaticPrimogeniture && child.IsFemale) continue;
-                Hero descendant = FirstLivingInBranches(OrderedChildren(child, law), law, visited);
+                Hero descendant = FirstLivingInBranches(OrderedChildren(child, law), law, visited, realm);
                 if (descendant != null) return descendant;
             }
             return null;
@@ -134,16 +140,20 @@ namespace AgesOfCalradiaSuccession
             return hero != null && (law != SuccessionLaw.AgnaticPrimogeniture || !hero.IsFemale);
         }
 
-        private static bool IsLivingDynast(Hero hero)
+        private static bool IsLivingDynast(Hero hero, Kingdom realm)
         {
-            return hero != null && hero.IsAlive && hero.IsActive && hero.IsLord;
+            return hero != null && hero.IsAlive && hero.IsActive && hero.IsLord
+                && (realm == null || (hero.Clan != null && hero.Clan.Kingdom == realm
+                    && !hero.Clan.IsEliminated && !hero.Clan.IsMinorFaction && !hero.Clan.IsClanTypeMercenary));
         }
 
-        private static bool IsEligible(Clan clan, Hero hero, SuccessionLaw law)
+        internal static bool IsEligibleClanLeader(Kingdom kingdom, Hero hero, bool requireAdult = true)
         {
-            if (clan == null || hero == null || clan.IsEliminated || clan.IsMinorFaction || clan.IsClanTypeMercenary) return false;
-            if (!hero.IsAlive || !hero.IsActive || hero.Age < AdultAge) return false;
-            if (law == SuccessionLaw.AgnaticPrimogeniture && hero.IsFemale) return false;
+            if (kingdom == null || kingdom.IsEliminated || hero == null) return false;
+            Clan clan = hero.Clan;
+            if (clan == null || clan.Kingdom != kingdom || clan.Leader != hero
+                || clan.IsEliminated || clan.IsMinorFaction || clan.IsClanTypeMercenary) return false;
+            if (!hero.IsAlive || !hero.IsActive || !hero.IsLord || (requireAdult && hero.Age < AdultAge)) return false;
             return true;
         }
 

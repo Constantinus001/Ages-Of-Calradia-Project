@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{64C169B5-C0BD-49D0-BAA1-25AE33AF0994}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>AgesOfCalradiaInternalWarsTest</RootNamespace>
+    <AssemblyName>AgesOfCalradiaInternalWarsTest</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <BannerlordDir Condition=" '$(BannerlordDir)' == '' ">C:\Program Files\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordDir>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols><DebugType>full</DebugType><Optimize>false</Optimize><DefineConstants>DEBUG;TRACE</DefineConstants><WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType><Optimize>true</Optimize><DefineConstants>TRACE</DefineConstants><WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" /><Reference Include="System.Core" />
+    <Reference Include="0Harmony"><HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.CampaignSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Core"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.DotNet"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.InputSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Library"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Localization"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Localization.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.MountAndBlade"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.ObjectSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.ObjectSystem.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <Compile Include="InternalWarTestSubModule.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="InternalWarDiagnosticMonitor.cs" />
+    <Compile Include="InternalWarTestDiagnostics.cs" />
+    <Compile Include="InternalWarDiagnosticsReport.cs" />
+    <Compile Include="InternalWarTestRecord.cs" />
+    <Compile Include="InternalConflictRecord.cs" />
+    <Compile Include="InternalWarHistory.cs" />
+    <Compile Include="InternalWarConflictRegistry.cs" />
+    <Compile Include="InternalWarMultipleConflicts.cs" />
+    <Compile Include="InternalWarControllers.cs" />
+    <Compile Include="InternalWarScopedDataStore.cs" />
+    <Compile Include="InternalWarPoliticalAi.cs" />
+    <Compile Include="InternalWarSuccessionBridge.cs" />
+    <Compile Include="InternalWarCombatService.cs" />
+    <Compile Include="InternalWarCombatPatches.cs" />
+    <Compile Include="InternalWarAiNativePatches.cs" />
+    <Compile Include="InternalWarTestService.cs" />
+    <Compile Include="InternalWarTestBehavior.cs" />
+    <Compile Include="InternalWarTestRecovery.cs" />
+    <Compile Include="InternalWarRecoveryState.cs" />
+    <Compile Include="InternalWarSiegeCleanup.cs" />
+    <Compile Include="InternalWarTestAiCoordinator.cs" />
+    <Compile Include="InternalWarRaidRecord.cs" />
+    <Compile Include="InternalWarTestRaids.cs" />
+    <Compile Include="InternalWarNpcRaids.cs" />
+    <Compile Include="InternalWarRaidArrivalPatch.cs" />
+    <Compile Include="InternalWarRaidJoinPolicy.cs" />
+    <Compile Include="InternalWarSallyService.cs" />
+    <Compile Include="InternalWarSallyPatches.cs" />
+    <Compile Include="InternalWarReliefService.cs" />
+    <Compile Include="InternalWarReliefPatches.cs" />
+    <Compile Include="InternalWarNonCapturingQuestPatch.cs" />
+    <Compile Include="InternalWarTestDiplomacy.cs" />
+    <Compile Include="InternalWarRealmRules.cs" />
+    <Compile Include="InternalWarRealmGovernance.cs" />
+    <Compile Include="InternalWarRealmMenu.cs" />
+    <Compile Include="InternalWarAcceptanceChecks.cs" />
+    <Compile Include="InternalWarRaidPatches.cs" />
+    <Compile Include="InternalWarTestMenu.cs" />
+    <Compile Include="InternalWarTestPatchSafety.cs" />
+    <Compile Include="InternalWarTestPatches.cs" />
+    <Compile Include="InternalWarTestEncounterPatch.cs" />
+    <None Include="SubModule.xml" />
+    <None Include="README.md" />
+    <None Include="Build-InternalWarTestPackage.ps1" />
+    <None Include="Audit-InternalWarNativeContracts.ps1" />
+    <None Include="Verify-InternalWarTestModule.ps1" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -15,7 +15,7 @@ namespace AgesOfCalradiaSuccession
             SuccessionCampaignBehavior behavior, out string result)
         {
             result = string.Empty;
-            if (original == null || original.IsEliminated || pretender == null || pretender.Clan == null)
+            if (behavior == null || !SuccessionResolver.IsEligibleClanLeader(original, pretender))
             {
                 result = "The selected realm has no valid claimant.";
                 return false;
@@ -28,20 +28,29 @@ namespace AgesOfCalradiaSuccession
             }
 
             List<Clan> defectors = (supporters ?? Enumerable.Empty<Clan>())
-                .Where(c => c != null && c.Kingdom == original && c != original.RulingClan && !c.IsClanTypeMercenary && !c.IsMinorFaction)
+                .Where(c => c != null && c != original.RulingClan && SuccessionResolver.IsEligibleClanLeader(original, c.Leader)
+                    && c.Leader.Clan == c)
                 .Distinct()
                 .ToList();
             if (!defectors.Contains(claimantClan)) defectors.Insert(0, claimantClan);
 
+            bool started = false;
             try
             {
                 int day = (int)Math.Floor(CampaignTime.Now.ToDays);
                 string id = "aoc_claimant_" + SafeId(original.StringId) + "_" + SafeId(claimantClan.StringId) + "_" + day;
                 if (Kingdom.All.Any(k => k != null && k.StringId == id))
                 {
-                    result = "A claimant realm with this debug identity already exists today.";
+                    result = "A claimant realm with this identity already exists today.";
                     return false;
                 }
+
+                if (!behavior.TryBeginCrisis(original, pretender, id))
+                {
+                    result = "This realm already has an unresolved succession or claimant crisis.";
+                    return false;
+                }
+                started = true;
 
                 Kingdom claimantRealm = Kingdom.CreateKingdom(id);
                 TextObject name = new TextObject(pretender.Name + "'s Realm");
@@ -60,8 +69,13 @@ namespace AgesOfCalradiaSuccession
                     ChangeKingdomAction.ApplyByJoinToKingdomByDefection(clan, original, claimantRealm, CampaignTime.Now, true);
                 }
                 if (claimantRealm.RulingClan != claimantClan) ChangeRulingClanAction.Apply(claimantRealm, claimantClan);
+                if (claimantRealm.Leader != pretender || claimantClan.Kingdom != claimantRealm
+                    || defectors.Any(c => c.Kingdom != claimantRealm))
+                    throw new InvalidOperationException("A native or external action prevented claimant formation.");
                 DeclareWarAction.ApplyByClaimOnThrone(claimantRealm, original);
-                behavior.RegisterDebugCivilWar(original, claimantRealm, pretender);
+                behavior.RegisterClaimantRealm(original, claimantRealm, pretender);
+                behavior.FinishCrisisCreation(original, true);
+                started = false;
 
                 string borderRefresh;
                 bool borderRefreshRequested = SuccessionCampaignMapBorderBridge.RequestRefresh(out borderRefresh);
@@ -69,17 +83,45 @@ namespace AgesOfCalradiaSuccession
                 result = pretender.Name + " formed " + claimantRealm.Name + " with " + defectors.Count
                     + " clan(s) and declared a succession war on " + original.Name + ". Campaign-map borders "
                     + (borderRefreshRequested ? "are rebuilding now." : "will refresh at the next ownership audit.");
-                SuccessionDiagnostics.Info("DEBUG SUCCESSION WAR: " + result + " Border bridge: " + borderRefresh
+                SuccessionDiagnostics.Info("SUCCESSION WAR: " + result + " Border bridge: " + borderRefresh
                     + "; claimantPrimary=0x" + claimantPrimary.ToString("X8")
                     + "; claimantSecondary=0x" + claimantSecondary.ToString("X8") + ".");
                 return true;
             }
             catch (Exception exception)
             {
-                SuccessionDiagnostics.Error("Debug succession war creation failed.", exception);
+                if (started) behavior.FinishCrisisCreation(original, false);
+                SuccessionDiagnostics.Error("Succession war creation failed.", exception);
                 result = "The succession war could not be created safely. Check the succession log.";
                 return false;
             }
+        }
+
+        // Bannerlord 1.4.8 native action boundary. Only current members return;
+        // third-party defections and third-party conquests are never undone.
+        internal static void Reunify(Kingdom original, Kingdom claimantRealm, Hero claimant, bool claimantWins)
+        {
+            if (FactionManager.IsAtWarAgainstFaction(original, claimantRealm)) MakePeaceAction.Apply(original, claimantRealm);
+            Clan claimantClan = claimant == null ? null : claimant.Clan;
+            foreach (Clan clan in claimantRealm.Clans.Where(c => c != null && !c.IsEliminated)
+                .OrderBy(c => c == claimantRealm.RulingClan ? 1 : 0).ToList())
+            {
+                if (clan.Kingdom != claimantRealm) continue;
+                ChangeKingdomAction.ApplyByJoinToKingdom(clan, original, CampaignTime.Now, true);
+                if (clan.Kingdom != original) throw new InvalidOperationException("A native or external action prevented claimant reunification.");
+            }
+            if (claimantWins)
+            {
+                if (!SuccessionResolver.IsEligibleClanLeader(original, claimant))
+                    throw new InvalidOperationException("Claimant eligibility changed during reunification.");
+                ChangeRulingClanAction.Apply(original, claimantClan);
+                if (original.Leader != claimant) throw new InvalidOperationException("A native or external action prevented claimant accession.");
+            }
+            if (claimantRealm.Clans.Any(c => c != null && !c.IsEliminated))
+                throw new InvalidOperationException("Claimant kingdom still contains clans after reunification.");
+            if (!claimantRealm.IsEliminated) DestroyKingdomAction.Apply(claimantRealm);
+            string refresh;
+            SuccessionCampaignMapBorderBridge.RequestRefresh(out refresh);
         }
 
         private static string SafeId(string value)

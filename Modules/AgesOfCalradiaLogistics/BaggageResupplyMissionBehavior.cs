@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -21,6 +22,24 @@ namespace AgesOfCalradiaLogistics
         private float _summaryElapsed;
         private int _transferredRounds;
         private int _consumedReserve;
+        private readonly Dictionary<BattleSideEnum, int> _nextContributorIndexBySide =
+            new Dictionary<BattleSideEnum, int>();
+        private readonly Dictionary<BattleSideEnum, MobileParty[]> _reservePartiesBySide =
+            new Dictionary<BattleSideEnum, MobileParty[]>();
+
+        public override void AfterStart()
+        {
+            base.AfterStart();
+
+            MapEvent battle = PlayerEncounter.Battle;
+            if (battle == null || !Mission.IsFieldBattle)
+            {
+                return;
+            }
+
+            _reservePartiesBySide[BattleSideEnum.Attacker] = GetReserveParties(battle, BattleSideEnum.Attacker);
+            _reservePartiesBySide[BattleSideEnum.Defender] = GetReserveParties(battle, BattleSideEnum.Defender);
+        }
 
         public override void OnMissionTick(float dt)
         {
@@ -34,9 +53,12 @@ namespace AgesOfCalradiaLogistics
             ResupplySide(BattleSideEnum.Attacker);
             ResupplySide(BattleSideEnum.Defender);
             _summaryElapsed += ResupplyIntervalSeconds;
-            if (_summaryElapsed >= 30f && _consumedReserve > 0)
+            if (_summaryElapsed >= 30f)
             {
-                LogisticsDiagnostics.Info(string.Format("Battle resupply summary: {0} round(s) transferred using {1} reserve point(s) in the last {2:F0}s.", _transferredRounds, _consumedReserve, _summaryElapsed));
+                if (_consumedReserve > 0)
+                {
+                    LogisticsDiagnostics.Info(string.Format("Battle resupply summary: {0} round(s) transferred using {1} reserve point(s) in the last {2:F0}s.", _transferredRounds, _consumedReserve, _summaryElapsed));
+                }
                 _summaryElapsed = 0f;
                 _transferredRounds = 0;
                 _consumedReserve = 0;
@@ -46,14 +68,19 @@ namespace AgesOfCalradiaLogistics
         private void ResupplySide(BattleSideEnum side)
         {
             BaggageTrainLocation location;
-            if (!BaggageTrainRegistry.TryGet(side, out location))
+            if (!BaggageTrainRegistry.TryGet(side, out location) || location.IsCaptured)
             {
                 return;
             }
 
-            MobileParty reserveParty = GetReserveParty(side);
+            MobileParty[] reserveParties;
+            if (!_reservePartiesBySide.TryGetValue(side, out reserveParties))
+            {
+                return;
+            }
             LogisticsReserveBehavior reserves = LogisticsReserveBehavior.Active;
-            if (reserveParty == null || reserves == null || reserves.GetReserve(reserveParty) <= 0)
+            if (reserveParties.Length == 0 || reserves == null
+                || reserveParties.Sum(party => reserves.GetReserve(party)) <= 0)
             {
                 return;
             }
@@ -72,38 +99,34 @@ namespace AgesOfCalradiaLogistics
                     continue;
                 }
 
-                if (!TryResupplyAgent(agent, reserveParty, reserves))
+                int nextContributorIndex = _nextContributorIndexBySide.ContainsKey(side)
+                    ? _nextContributorIndexBySide[side]
+                    : 0;
+                if (!TryResupplyAgent(agent, reserveParties, reserves, ref nextContributorIndex))
                 {
                     return;
                 }
+
+                _nextContributorIndexBySide[side] = nextContributorIndex;
             }
         }
 
-        private MobileParty GetReserveParty(BattleSideEnum side)
+        private static MobileParty[] GetReserveParties(MapEvent battle, BattleSideEnum side)
         {
-            MapEvent battle = PlayerEncounter.Battle;
-            if (battle == null)
-            {
-                return null;
-            }
-
-            MapEventParty mainParty = battle.PartiesOnSide(side)
-                .FirstOrDefault(mapParty => mapParty.Party == PartyBase.MainParty);
-            if (mainParty != null)
-            {
-                return MobileParty.MainParty;
-            }
-
-            MapEventParty eligibleParty = battle.PartiesOnSide(side)
-                .FirstOrDefault(mapParty => mapParty.Party != null &&
-                    LogisticsReserveBehavior.IsEligible(mapParty.Party.MobileParty));
-            return eligibleParty == null ? null : eligibleParty.Party.MobileParty;
+            return battle.PartiesOnSide(side)
+                .Where(mapParty => mapParty.Party != null
+                    && LogisticsReserveBehavior.IsEligible(mapParty.Party.MobileParty))
+                .Select(mapParty => mapParty.Party.MobileParty)
+                .Distinct()
+                .OrderBy(party => party.StringId, System.StringComparer.Ordinal)
+                .ToArray();
         }
 
         private bool TryResupplyAgent(
             Agent agent,
-            MobileParty reserveParty,
-            LogisticsReserveBehavior reserves)
+            MobileParty[] reserveParties,
+            LogisticsReserveBehavior reserves,
+            ref int nextContributorIndex)
         {
             for (EquipmentIndex slot = EquipmentIndex.WeaponItemBeginSlot;
                 slot < EquipmentIndex.NumAllWeaponSlots;
@@ -127,7 +150,7 @@ namespace AgesOfCalradiaLogistics
                 }
 
                 int transferAmount = System.Math.Min(RoundsPerReservePoint, desiredAmount - weapon.Amount);
-                if (!reserves.TryConsumeReserve(reserveParty, 1))
+                if (!reserves.TryConsumeReserve(reserveParties, 1, ref nextContributorIndex))
                 {
                     return false;
                 }

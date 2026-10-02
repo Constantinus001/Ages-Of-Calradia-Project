@@ -1,0 +1,5 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><Configuration>Release</Configuration><OutputType>Exe</OutputType><AssemblyName>MeshSwapTransactionTests</AssemblyName><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion><OutputPath>bin\Transaction\</OutputPath><IntermediateOutputPath>obj\Transaction\</IntermediateOutputPath><Optimize>true</Optimize><WarningLevel>4</WarningLevel></PropertyGroup>
+  <ItemGroup><Reference Include="System"/><Reference Include="System.Core"/><Compile Include="MeshSwapTransactionTests.cs"/><Compile Include="..\..\Builds\PoliticalFillSeamFix\MeshSwapTransaction.cs"/></ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>

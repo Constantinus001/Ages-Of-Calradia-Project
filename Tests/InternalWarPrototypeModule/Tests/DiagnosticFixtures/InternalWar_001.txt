@@ -1,0 +1,5 @@
+AOC INTERNAL WAR DIAGNOSTIC SNAPSHOT v1
+module.build_id=fixture-build-a
+snapshot.complete=True
+CHECK war.one.capture_owner|REVIEW|owner mismatch
+CHECK war.one.payment_receipt|NOT_EXERCISED|no payment

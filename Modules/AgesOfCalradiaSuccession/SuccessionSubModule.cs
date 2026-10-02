@@ -14,6 +14,7 @@ namespace AgesOfCalradiaSuccession
             try
             {
                 base.OnSubModuleLoad();
+                SuccessionElectionPatches.Install();
                 SuccessionDiagnostics.Info("Succession v0.4.3 loaded. Native kingdom ruler votes resolve by hereditary law.");
             }
             catch (Exception exception)

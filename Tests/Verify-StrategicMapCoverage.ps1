@@ -41,8 +41,9 @@ Assert-True ((@($bindings.SpriteName | Sort-Object -Unique).Count) -eq 133) 'Str
 Assert-True ((@($bindings.SettlementId | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count) -eq 0) 'A strategic province is missing its local ownership binding.'
 # The static province table is retained only for disabled legacy layers.
 # Several source-map regions contain more than one live settlement, so the
-# active composer must use strategic_settlement_index + its manifest instead
-# of asserting that the retired table is one-to-one.
+# generated settlement index/manifest is checked as an authoring asset below;
+# the active composer intentionally uses the original province index instead
+# (see its explicit source assertions below), not the generated split index.
 
 [xml]$spriteData = Get-Content -LiteralPath $spriteDataPath
 $provinceParts = @($spriteData.SpriteData.SpriteParts.SpritePart | Where-Object { $_.Name -match '^strategic_province_\d{3}$' })
@@ -82,6 +83,9 @@ for ($left = 0; $left -lt $allUiParts.Count; $left++) {
 }
 
 Add-Type -AssemblyName System.Drawing
+if (-not ('StrategicMapPixelChecks' -as [type])) {
+    Add-Type -Path (Join-Path $PSScriptRoot 'StrategicMapPixelChecks.cs') -ReferencedAssemblies System.Drawing
+}
 foreach ($part in $provinceParts) {
     $maskPath = Join-Path $provinceDirectory ($part.Name + '.png')
     Assert-True (Test-Path -LiteralPath $maskPath) "Missing province mask: $maskPath"
@@ -103,11 +107,7 @@ try {
         $maskPath = Join-Path $provinceDirectory ($part.Name + '.png')
         $mask = [System.Drawing.Bitmap]::FromFile($maskPath)
         try {
-            for ($y = 0; $y -lt $mask.Height; $y++) {
-                for ($x = 0; $x -lt $mask.Width; $x++) {
-                    Assert-True ($atlas.GetPixel(([int]$part.SheetX + $x), ([int]$part.SheetY + $y)).ToArgb() -eq $mask.GetPixel($x, $y).ToArgb()) "Atlas pixel mismatch for $($part.Name) at $x,$y."
-                }
-            }
+            [StrategicMapPixelChecks]::Atlas($atlas, $mask, [int]$part.SheetX, [int]$part.SheetY, [string]$part.Name)
         }
         finally { $mask.Dispose() }
     }
@@ -115,11 +115,7 @@ try {
         $markerPath = Join-Path $provinceDirectory ($markerPart.Name + '.png')
         $marker = [System.Drawing.Bitmap]::FromFile($markerPath)
         try {
-            for ($y = 0; $y -lt $marker.Height; $y++) {
-                for ($x = 0; $x -lt $marker.Width; $x++) {
-                    Assert-True ($atlas.GetPixel(([int]$markerPart.SheetX + $x), ([int]$markerPart.SheetY + $y)).ToArgb() -eq $marker.GetPixel($x, $y).ToArgb()) "Marker atlas content differs from source art: $($markerPart.Name) at $x,$y."
-                }
-            }
+            [StrategicMapPixelChecks]::Atlas($atlas, $marker, [int]$markerPart.SheetX, [int]$markerPart.SheetY, [string]$markerPart.Name)
         }
         finally { $marker.Dispose() }
     }
@@ -140,17 +136,9 @@ try {
         try { $coverageGraphics.DrawImageUnscaled($mask, ([int]$definition.Groups[2].Value - 80), ([int]$definition.Groups[3].Value - 90)) }
         finally { $mask.Dispose() }
     }
-    $landPixels = 0
-    $coveredLandPixels = 0
-    for ($y = 0; $y -lt $baseMap.Height; $y++) {
-        for ($x = 0; $x -lt $baseMap.Width; $x++) {
-            $basePixel = $baseMap.GetPixel($x, $y)
-            if ($basePixel.A -eq 0) {
-                $landPixels++
-                if ($coverageMap.GetPixel($x, $y).A -gt 0) { $coveredLandPixels++ }
-            }
-        }
-    }
+    $coverageCounts = [StrategicMapPixelChecks]::Coverage($baseMap, $coverageMap)
+    $landPixels = $coverageCounts[0]
+    $coveredLandPixels = $coverageCounts[1]
     Assert-True (($coveredLandPixels / [double]$landPixels) -ge 0.975) "Province mask coverage is too low: $coveredLandPixels of $landPixels bright land pixels."
 }
 finally {
@@ -168,18 +156,7 @@ $indexMap = [System.Drawing.Bitmap]::FromFile($provinceIndexPath)
 $baseMap = [System.Drawing.Bitmap]::FromFile($baseMapPath)
 try {
     Assert-True ($indexMap.Width -eq $baseMap.Width -and $indexMap.Height -eq $baseMap.Height) 'The province-index texture dimensions differ from the base map.'
-    for ($y = 0; $y -lt $baseMap.Height; $y++) {
-        for ($x = 0; $x -lt $baseMap.Width; $x++) {
-            $basePixel = $baseMap.GetPixel($x, $y)
-            $indexPixel = $indexMap.GetPixel($x, $y)
-            if ($basePixel.A -eq 0) {
-                Assert-True ($indexPixel.R -ge 1 -and $indexPixel.R -le 133) "Unassigned province interior at $x,$y."
-            }
-            else {
-                Assert-True ($indexPixel.A -eq 0) "Province index overwrites an opaque base-map border or water pixel at $x,$y."
-            }
-        }
-    }
+    [StrategicMapPixelChecks]::Index($baseMap, $indexMap, $false) | Out-Null
 }
 finally {
     $indexMap.Dispose()
@@ -226,21 +203,7 @@ $territoryMap = [System.Drawing.Bitmap]::FromFile($territoryIndexPath)
 $baseMap = [System.Drawing.Bitmap]::FromFile($baseMapPath)
 try {
     Assert-True ($territoryMap.Width -eq $baseMap.Width -and $territoryMap.Height -eq $baseMap.Height) 'The settlement-territory index dimensions differ from the base map.'
-    $syntheticBorderPixels = 0
-    for ($y = 0; $y -lt $baseMap.Height; $y++) {
-        for ($x = 0; $x -lt $baseMap.Width; $x++) {
-            $basePixel = $baseMap.GetPixel($x, $y)
-            $territoryPixel = $territoryMap.GetPixel($x, $y)
-            if ($basePixel.A -eq 0) {
-                Assert-True ($territoryPixel.A -gt 0) "Settlement-territory index leaves land transparent at $x,$y."
-                Assert-True (($territoryPixel.R -ge 1 -and $territoryPixel.R -le 133) -or $territoryPixel.R -eq 255) "Settlement-territory index contains an invalid land id at $x,$y."
-                if ($territoryPixel.R -eq 255) { $syntheticBorderPixels++ }
-            }
-            else {
-                Assert-True ($territoryPixel.A -eq 0) "Settlement-territory index overwrites an opaque base-map border or water pixel at $x,$y."
-            }
-        }
-    }
+    $syntheticBorderPixels = [StrategicMapPixelChecks]::Index($baseMap, $territoryMap, $true)
     Assert-True ($syntheticBorderPixels -gt 0) 'Settlement-territory index is missing the internal split borders for shared source provinces.'
 }
 finally {
@@ -329,7 +292,7 @@ Assert-True (([regex]::Matches($worldCalendarPrefab, '<StrategicLegendDrawWidget
 Assert-True (([regex]::Matches($worldCalendarPrefab, '<StrategicLegendDrawWidget[^>]*IconKind="Castle"')).Count -eq 1) 'The Strategic Map legend is missing its engine-drawn castle icon.'
 Assert-True ($worldCalendarPrefab -match 'Text="Town"') 'The Strategic Map legend is missing the Town label.'
 Assert-True ($worldCalendarPrefab -match 'Text="Castle"') 'The Strategic Map legend is missing the Castle label.'
-Assert-True (([regex]::Matches($worldCalendarPrefab, 'TextureProviderName="')).Count -eq 1) "The Strategic Map must use one map composer while engine widgets draw both legend icons."
+[StrategicMapPixelChecks]::Composer($worldCalendarPrefab)
 Assert-True ($ledgerSource -match '\[DataSourceProperty\] public bool IsUnderSiege') 'Strategic settlement marker data does not expose its live siege state.'
 Assert-True ($ledgerSource -match 'BuildStrategicPanelText\(\)') 'The strategic map is missing its selected-settlement details panel.'
 Assert-True ($ledgerSource -match 'CanPlayerInspectSettlement') 'The strategic-map settlement details are missing faction access control.'

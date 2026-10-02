@@ -1,0 +1,55 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<PropertyGroup>
+<Configuration Condition="'$(Configuration)'==''">Release</Configuration><OutputType>Library</OutputType>
+<AssemblyName>AgesOfCalradiaBorderEditPrototype</AssemblyName><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+<PlatformTarget>x64</PlatformTarget><OutputPath>package\AgesOfCalradiaBorderEditPrototype\bin\Win64_Shipping_Client\</OutputPath>
+<Optimize>true</Optimize><WarningLevel>4</WarningLevel><TreatWarningsAsErrors>true</TreatWarningsAsErrors><LangVersion>latest</LangVersion><Deterministic>true</Deterministic>
+<BannerlordDir Condition="'$(BannerlordDir)'==''">C:\Program Files\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordDir>
+</PropertyGroup><ItemGroup>
+<Reference Include="System" />
+<Reference Include="System.Core" />
+<Reference Include="System.Xml" />
+<Reference Include="TaleWorlds.Library"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.Engine"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.DotNet"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.CampaignSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.MountAndBlade"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.Core"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.ObjectSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.ObjectSystem.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.Localization"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Localization.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.SaveSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.SaveSystem.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.ScreenSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.ScreenSystem.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.InputSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.InputSystem.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.Engine.GauntletUI"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.GauntletUI.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.GauntletUI"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="TaleWorlds.GauntletUI.Data"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.Data.dll</HintPath><Private>false</Private></Reference>
+<Reference Include="0Harmony"><HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath><Private>false</Private></Reference>
+</ItemGroup><ItemGroup>
+<Compile Include="FillRepairPlan.cs" /><Compile Include="NativeFillRepair.cs" /><Compile Include="NativeRepairCapture.cs" /><Compile Include="BorderDrawingStyle.cs" /><Compile Include="BorderEnclosure.cs" /><Compile Include="BoundaryGuide.cs" /><Compile Include="StrokeSimplifier.cs" /><Compile Include="BorderGraph.cs" /><Compile Include="FillGeometry.cs" /><Compile Include="DragIntent.cs" />
+<Compile Include="AssemblyInfo.cs" /><Compile Include="PublishedBorderLayout.cs" />
+<Compile Include="BorderSpatialIndex.cs" />
+<Compile Include="DraftStore.cs" /><Compile Include="DraftChangeTracker.cs" />
+<Compile Include="NativeCapture.cs" />
+<Compile Include="TopologyFingerprint.cs" />
+<Compile Include="TopologyCaptureStore.cs" />
+<Compile Include="NativeCleanup.cs" />
+<Compile Include="NativeBindings.cs" />
+<Compile Include="NativePatchCompatibility.cs" />
+<Compile Include="NativeTriangleCapture.cs" />
+<Compile Include="NativeCoastCompatibility.cs" />
+<Compile Include="..\..\Builds\CoastSurfaceFix\CoastSurfacePolicy.cs" />
+<Compile Include="..\..\Builds\CoastSurfaceFix\CoastCapClipper.cs" />
+<Compile Include="NativePreview.cs" /><Compile Include="RibbonJoin.cs" />
+<Compile Include="NativeSelection.cs" /><Compile Include="NativeEditLines.cs" /><Compile Include="OverlayHitMesh.cs" />
+<Compile Include="PrototypeRuntime.cs" />
+<Compile Include="PrototypePanel.cs" /><Compile Include="NativeLocationStyle.cs" /><Compile Include="NativeFillPreview.cs" /><Compile Include="CreationTool.cs" /><Compile Include="DrawingPointer.cs" />
+</ItemGroup>
+<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+<Target Name="PackagePrototype" AfterTargets="Build">
+<Copy SourceFiles="SubModule.xml;README.md;Repair.xml" DestinationFolder="package\AgesOfCalradiaBorderEditPrototype\" />
+<Copy SourceFiles="GUI\Prefabs\AocBorderEditPrototype.xml" DestinationFolder="package\AgesOfCalradiaBorderEditPrototype\GUI\Prefabs\" />
+</Target></Project>
+
+
+
+

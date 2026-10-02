@@ -7,17 +7,18 @@ $modulesRoot = Split-Path -Parent $systemsRoot
 
 if ($manifest.Module.Name.value -ne 'AOC SYSTEMS R & S' -or
     $manifest.Module.Id.value -ne 'AgesOfCalradiaSystemsRS' -or
-    $manifest.Module.Version.value -ne 'v1.0.0') {
+    $manifest.Module.Version.value -ne 'v1.1.0') {
     throw 'R & S manifest name, ID, or version is incorrect.'
 }
 
 $expected = @(
     @{ Name = 'AOC SYSTEMS R & S: Religions'; DLL = 'AgesOfCalradiaReligions.dll'; Class = 'AgesOfCalradiaReligions.ReligionSubModule' },
-    @{ Name = 'AOC SYSTEMS R & S: Succession'; DLL = 'AgesOfCalradiaSuccession.dll'; Class = 'AgesOfCalradiaSuccession.SuccessionSubModule' }
+    @{ Name = 'AOC SYSTEMS R & S: Succession'; DLL = 'AgesOfCalradiaSuccession.dll'; Class = 'AgesOfCalradiaSuccession.SuccessionSubModule' },
+    @{ Name = 'AOC SYSTEMS R & S: Shipwright'; DLL = 'AgesOfCalradiaReligions.Shipwright.dll'; Class = 'AgesOfCalradiaReligions.Shipwright.ShipwrightSubModule' }
 )
 $actual = @($manifest.Module.SubModules.SubModule)
-if ($actual.Count -ne 2) { throw "R & S must declare exactly two submodules; found $($actual.Count)." }
-for ($index = 0; $index -lt 2; $index++) {
+if ($actual.Count -ne 3) { throw "R & S must declare exactly three submodules; found $($actual.Count)." }
+for ($index = 0; $index -lt 3; $index++) {
     if ($actual[$index].Name.value -ne $expected[$index].Name -or
         $actual[$index].DLLName.value -ne $expected[$index].DLL -or
         $actual[$index].SubModuleClassType.value -ne $expected[$index].Class) {
@@ -28,6 +29,10 @@ for ($index = 0; $index -lt 2; $index++) {
 $dependencies = @($manifest.Module.DependedModules.DependedModule | ForEach-Object { $_.Id })
 if ($dependencies -notcontains 'AgesOfCalradia') { throw 'R & S must load after AOC CORE.' }
 if ($dependencies -contains 'AgesOfCalradiaReligions') { throw 'Succession must use the Religion assembly internally, not its retired module identity.' }
+$navalMetadata = @($manifest.Module.DependedModuleMetadatas.DependedModuleMetadata | Where-Object { $_.id -eq 'NavalDLC' })
+if ($navalMetadata.Count -ne 1 -or $navalMetadata[0].optional -ne 'true' -or $navalMetadata[0].version -ne 'v1.2.8') {
+    throw 'R & S must declare its audited War Sails v1.2.8 integration as optional.'
+}
 $incompatible = @($manifest.Module.IncompatibleModules.Module | ForEach-Object { $_.Id })
 foreach ($id in @('AgesOfCalradiaSystems', 'AgesOfCalradiaReligions', 'AgesOfCalradiaSuccession')) {
     if ($incompatible -notcontains $id) { throw "R & S must reject duplicate module identity: $id" }
@@ -57,6 +62,7 @@ if (-not [string]::IsNullOrWhiteSpace($PackageRoot)) {
     if ($packageManifest.Module.Id.value -ne 'AgesOfCalradiaSystemsRS') { throw 'Packaged R & S manifest is incorrect.' }
     foreach ($path in @(
         'bin\Win64_Shipping_Client\AgesOfCalradiaReligions.dll',
+        'bin\Win64_Shipping_Client\AgesOfCalradiaReligions.Shipwright.dll',
         'bin\Win64_Shipping_Client\AgesOfCalradiaSuccession.dll',
         'ModuleData\religions.json',
         'ModuleData\holy_sites.json',
@@ -71,4 +77,4 @@ if (-not [string]::IsNullOrWhiteSpace($PackageRoot)) {
     if ($developmentFiles.Count -gt 0) { throw "Development files entered R & S: $($developmentFiles.FullName -join ', ')" }
 }
 
-Write-Output 'PASS: AOC SYSTEMS R & S ordering, assets, incompatibilities, and save contracts verified.'
+Write-Output 'PASS: AOC SYSTEMS R & S ordering, Shipwright sidecar, assets, incompatibilities, and save contracts verified.'

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Undeployed combined candidate. Merge these attributes into existing settings;
+     preserve user overrides. If BatchesPerOrder exceeds 12, resolve that conflict
+     before activation rather than silently changing the user's lot size. -->
+<CampaignSystems schema="1">
+  <Procurement IronSupplierReserveDays="14" MaximumAdaptiveBatches="12" DeliveryDelayCostWeight="1" WineExpenseCoverage="1.25" />
+</CampaignSystems>

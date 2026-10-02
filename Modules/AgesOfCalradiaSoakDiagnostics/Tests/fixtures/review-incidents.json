@@ -1,0 +1,17 @@
+{
+  "provenance": "Minimal synthetic reproductions of established reporting failure modes, not original campaign receipts. Expected values are hand-calculated, never generated from analyzer output.",
+  "cases": [
+    {
+      "name": "native_failed_gate_metric_must_not_disappear",
+      "reason": "Native observer emits failed_see_gates, not only legacy failed. Two failed attempts among three are not two proven shortages.",
+      "rows": [["WORKSHOP_CYCLE", "shop", "succeeded", 0, 1, ""], ["WORKSHOP_CYCLE", "shop", "failed_see_gates", 0, 0, ""], ["WORKSHOP_CYCLE", "shop", "failed", 0, 0, ""]],
+      "expected": {"unsuccessful": 2, "successful": 1, "fraction": 0.6666666666666666}
+    },
+    {
+      "name": "repeated_wallet_residual_is_not_new_money_each_sample",
+      "reason": "The same ten-gold discrepancy sampled twice has peak ten, not twenty; a later match does not explain its cause.",
+      "rows": [["WALLET_CHECK", "hero:h", "Gold", 100, 110, ""], ["WALLET_CHECK", "hero:h", "Gold", 100, 110, ""], ["WALLET_CHECK", "hero:h", "Gold", 110, 110, ""]],
+      "expected": {"wallet": "hero:h|Gold", "peak": 10, "latest": 0, "discrepant_checks": 2, "cause": "unknown"}
+    }
+  ]
+}

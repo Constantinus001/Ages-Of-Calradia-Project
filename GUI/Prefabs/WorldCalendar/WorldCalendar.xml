@@ -10,13 +10,16 @@
              Gauntlet scale, a 23-unit X offset registers their center axes. -->
         <Widget Id="WorldEventsFrame" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="1220" SuggestedHeight="871" HorizontalAlignment="Center" VerticalAlignment="Center" PositionXOffset="23" PositionYOffset="90">
           <Children>
-            <!-- Keep these five providers identical to the verified standalone UI.
-                 They load the approved PNGs directly and bypass fragile atlases. -->
-            <TextureWidget Id="WorldEventsFullBorderShell" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" TextureProviderName="WorldEventsFullBorderShellTextureProvider" />
-            <TextureWidget Id="WorldEventsSelectedCalendarShell" IsVisible="@IsCalendarSectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" TextureProviderName="WorldEventsGoldFrameCalendarTextureProvider" />
-            <TextureWidget Id="WorldEventsSelectedStoryShell" IsVisible="@IsStorySectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" TextureProviderName="WorldEventsGoldFrameStoryTextureProvider" />
-            <TextureWidget Id="WorldEventsSelectedRealmShell" IsVisible="@IsDiplomacyVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" TextureProviderName="WorldEventsGoldFrameDiplomacyTextureProvider" />
-            <TextureWidget Id="WorldEventsSelectedStrategicShell" IsVisible="@IsStrategicSectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" TextureProviderName="WorldEventsGoldFrameMapTextureProvider" />
+            <!-- Resource Browser sprites keep the shell and selected fills in
+                 Gauntlet's normal atlas path instead of runtime textures. -->
+            <Widget Id="WorldEventsFullBorderShell" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="aoc_world_events_shell_v8" />
+            <!-- Native page tabs swap equal-sized default/selected artwork.
+                 These complete v6 shell states use the same 1400x1000 canvas
+                 as the base shell, eliminating independent fill positioning. -->
+            <Widget Id="WorldEventsSelectedCalendarShell" IsVisible="@IsCalendarSectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="aoc_world_events_shell_calendar_selected_v6" />
+            <Widget Id="WorldEventsSelectedStoryShell" IsVisible="@IsStorySectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="aoc_world_events_shell_story_selected_v6" />
+            <Widget Id="WorldEventsSelectedRealmShell" IsVisible="@IsDiplomacyVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="aoc_world_events_shell_realm_selected_v6" />
+            <Widget Id="WorldEventsSelectedStrategicShell" IsVisible="@IsStrategicSectionVisible" DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="aoc_world_events_shell_strategic_selected_v6" />
             <!-- Live Galahad title text remains crisp after Bannerlord applies
                  the window scale. Both lines share the eagle's center axis. -->
             <TextWidget Id="WorldEventsLiveTitle" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="523" SuggestedHeight="56" HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="54" Brush="Popup.Button.Text" Brush.Font="Galahad" Brush.FontSize="44" Text="World Events" Color="#D8BD83FF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" />

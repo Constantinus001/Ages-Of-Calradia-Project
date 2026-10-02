@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Module>
-  <Name value="Ages of Calradia Logistics" /><Id value="AgesOfCalradiaLogistics" /><Version value="v0.2.0" />
+  <Name value="Ages of Calradia Logistics" /><Id value="AgesOfCalradiaLogistics" /><Version value="v0.3.0" />
   <SingleplayerModule value="true" /><MultiplayerModule value="false" /><Official value="false" />
   <DefaultModule value="false" /><ModuleCategory value="Singleplayer" /><ModuleType value="Community" />
   <DependedModules>
-    <DependedModule Id="Native" DependentVersion="v1.4.7" /><DependedModule Id="SandBoxCore" DependentVersion="v1.4.7" />
-    <DependedModule Id="Sandbox" DependentVersion="v1.4.7" /><DependedModule Id="AgesOfCalradia" DependentVersion="v1.5.12" />
+    <DependedModule Id="Native" DependentVersion="v1.4.8" /><DependedModule Id="SandBoxCore" DependentVersion="v1.4.8" />
+    <DependedModule Id="Sandbox" DependentVersion="v1.4.8" /><DependedModule Id="AgesOfCalradia" DependentVersion="v1.5.14" />
   </DependedModules>
   <DependedModuleMetadatas>
-    <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="v1.4.7" />
-    <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v1.4.7" />
-    <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v1.4.7" />
-    <DependedModuleMetadata id="AgesOfCalradia" order="LoadBeforeThis" version="v1.5.10" />
-    <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="v1.4.7" optional="true" />
+    <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="v1.4.8" />
+    <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v1.4.8" />
+    <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v1.4.8" />
+    <DependedModuleMetadata id="AgesOfCalradia" order="LoadBeforeThis" version="v1.5.14" />
+    <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="v1.4.8" optional="true" />
   </DependedModuleMetadatas>
   <Xmls>
     <XmlNode><XmlName id="Items" path="supply_items" /><IncludedGameTypes><GameType value="Campaign" /><GameType value="CampaignStoryMode" /></IncludedGameTypes></XmlNode>

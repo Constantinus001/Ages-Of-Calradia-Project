@@ -1,0 +1,29 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration>Release</Configuration><OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion><OutputPath>bin\</OutputPath>
+    <DefineConstants>SUCCESSION_ENGINE_TEST</DefineConstants>
+    <PlatformTarget>x64</PlatformTarget><Optimize>true</Optimize><WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System"/><Reference Include="System.Core"/>
+    <Compile Include="SuccessionNativeFakes.cs"/>
+    <Compile Include="SuccessionEngineFakes.cs"/>
+    <Compile Include="SuccessionEngineVerifier.cs"/>
+    <Compile Include="SuccessionCrisisFakes.cs"/>
+    <Compile Include="SuccessionCrisisVerifier.cs"/>
+    <Compile Include="..\SuccessionCrisisController.cs"/>
+    <Compile Include="..\SuccessionCivilWar.cs"/>
+    <Compile Include="..\SuccessionCampaignBehavior.cs"/>
+    <Compile Include="..\SuccessionDeathIntegration.cs"/>
+    <Compile Include="..\SuccessionDispatchQueue.cs"/>
+    <Compile Include="..\SuccessionResolver.cs"/>
+    <Compile Include="..\SuccessionClaim.cs"/>
+    <Compile Include="..\SuccessionLaw.cs"/>
+    <Compile Include="..\SuccessionRecognition.cs"/>
+    <Compile Include="..\SuccessionService.cs"/>
+    <Compile Include="..\SuccessionPersistence.cs"/>
+    <Compile Include="..\SuccessionPoliticsPersistence.cs"/>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>

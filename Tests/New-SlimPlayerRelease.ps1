@@ -38,6 +38,10 @@ $approvedFixesSourcePath = Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\Ages
 $approvedFixesEntryName = 'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.Approved560CalendarFixes.dll'
 $campaignLabelSourcePath = Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\AgesOfCalradia.CampaignLabelVisibility.dll'
 $campaignLabelEntryName = 'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.CampaignLabelVisibility.dll'
+$politicalBorderOptimizerSourcePath = Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\AgesOfCalradia.PoliticalBorderOptimizer.dll'
+$politicalBorderOptimizerEntryName = 'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.PoliticalBorderOptimizer.dll'
+$worldEventsShellRepairSourcePath = Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\AgesOfCalradia.WorldEventsShellRepair.dll'
+$worldEventsShellRepairEntryName = 'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.WorldEventsShellRepair.dll'
 $releaseSourceEntries = [ordered]@{
     'AgesOfCalradia/SubModule.xml' = (Join-Path $ModuleRoot 'SubModule.xml')
     'AgesOfCalradia/README.md' = (Join-Path $ModuleRoot 'README.md')
@@ -45,6 +49,9 @@ $releaseSourceEntries = [ordered]@{
     'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.MCM.dll' = (Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\AgesOfCalradia.MCM.dll')
     'AgesOfCalradia/bin/Win64_Shipping_Client/MCMv5.dll' = (Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\MCMv5.dll')
     $campaignLabelEntryName = $campaignLabelSourcePath
+    $politicalBorderOptimizerEntryName = $politicalBorderOptimizerSourcePath
+    $worldEventsShellRepairEntryName = $worldEventsShellRepairSourcePath
+    'AgesOfCalradia/bin/Win64_Shipping_Client/AgesOfCalradia.CampaignSystems.dll' = (Join-Path $ModuleRoot 'bin\Win64_Shipping_Client\AgesOfCalradia.CampaignSystems.dll')
 }
 if ($sourcePath -eq $destinationPath) {
     throw 'SourceArchive and DestinationArchive must be different files.'
@@ -62,6 +69,22 @@ if (-not (Test-Path -LiteralPath $harmonySourcePath -PathType Leaf)) {
 }
 if (-not (Test-Path -LiteralPath $approvedFixesSourcePath -PathType Leaf)) {
     throw "Required approved-build fixes sidecar is missing: $approvedFixesSourcePath"
+}
+$approvedFixesBinaryText = [Text.Encoding]::UTF8.GetString(
+    [IO.File]::ReadAllBytes($approvedFixesSourcePath))
+$approvedFixesSearchText = $approvedFixesBinaryText.Replace(
+    [string][char]0,
+    [string]::Empty)
+foreach ($requiredMapBarToken in @(
+    'AocMapBarSeasonCrownTextureProvider',
+    'AocMapBarNotchBackingTextureProvider',
+    'AocMapBarMedallionRimTextureProvider',
+    'aoc_mapbar_season_crown_compact.png',
+    'aoc_mapbar_notch_backing.png',
+    'aoc_mapbar_medallion_ring_oval.png')) {
+    if (-not $approvedFixesSearchText.Contains($requiredMapBarToken)) {
+        throw "Approved-build fixes sidecar is stale and cannot package the MapBar: missing $requiredMapBarToken. Run Tests\Verify-Release.ps1 first."
+    }
 }
 foreach ($protectedAsset in $protectedWorldEventsEntries.Values) {
     if (-not (Test-Path -LiteralPath $protectedAsset -PathType Leaf)) {

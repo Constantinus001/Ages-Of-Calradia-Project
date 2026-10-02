@@ -47,6 +47,15 @@
       </Tags>
     </SubModule>
     <SubModule>
+      <Name value="AOC CORE: World Events Shell Repair" />
+      <DLLName value="AgesOfCalradia.WorldEventsShellRepair.dll" />
+      <SubModuleClassType value="AgesOfCalradia.WorldEventsShellRepair.WorldEventsShellRepairSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
       <Name value="AOC CORE: Island Exclusion" />
       <DLLName value="AgesOfCalradia.dll" />
       <SubModuleClassType value="AgesOfCalradia.IslandExclusion.IslandExclusionSubModule" />
@@ -77,6 +86,42 @@
       <Name value="AOC CORE: Campaign Label Visibility" />
       <DLLName value="AgesOfCalradia.CampaignLabelVisibility.dll" />
       <SubModuleClassType value="AgesOfCalradia.CampaignLabelVisibility.CampaignLabelVisibilitySubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="AOC CORE: Published Borders" />
+      <DLLName value="AgesOfCalradiaBorderEditPrototype.dll" />
+      <SubModuleClassType value="Aoc.BorderEditPrototype.PublishedBorderSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="AOC CORE: Political Border Optimizer" />
+      <DLLName value="AgesOfCalradia.PoliticalBorderOptimizer.dll" />
+      <SubModuleClassType value="AgesOfCalradia.PoliticalBorderOptimizer.PoliticalBorderOptimizerSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="AOC CORE: Campaign Systems" />
+      <DLLName value="AgesOfCalradia.CampaignSystems.dll" />
+      <SubModuleClassType value="AgesOfCalradia.CampaignSystems.CoreSystemsSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="AOC CORE: Workshop Procurement" />
+      <DLLName value="AgesOfCalradia.WorkshopProcurement.dll" />
+      <SubModuleClassType value="AgesOfCalradia.WorkshopProcurement.ProcurementSubModule" />
       <Tags>
         <Tag key="DedicatedServerType" value="none" />
         <Tag key="IsNoRenderModeElement" value="false" />

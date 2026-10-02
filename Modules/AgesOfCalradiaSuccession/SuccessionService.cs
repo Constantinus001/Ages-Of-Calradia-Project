@@ -5,48 +5,65 @@ namespace AgesOfCalradiaSuccession
 {
     public static class SuccessionService
     {
-        private static SuccessionCampaignBehavior _behavior;
-
-        internal static void Attach(SuccessionCampaignBehavior behavior) { _behavior = behavior; }
+        // Resolve against the active campaign; never retain a previous save's
+        // behavior (and hero references) in a process-wide static field.
+        internal static SuccessionCampaignBehavior CurrentBehavior
+        {
+            get { return Campaign.Current == null ? null : Campaign.Current.GetCampaignBehavior<SuccessionCampaignBehavior>(); }
+        }
 
         public static SuccessionLaw GetLaw(Kingdom kingdom)
         {
-            return _behavior == null ? SuccessionResolver.DefaultLawFor(kingdom) : _behavior.GetLaw(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? SuccessionResolver.DefaultLawFor(kingdom) : behavior.GetLaw(kingdom);
+        }
+
+        public static string GetCrisisStatus(Kingdom kingdom)
+        {
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? "None" : behavior.GetCrisisStatus(kingdom);
         }
 
         public static IReadOnlyList<SuccessionClaim> GetClaimants(Kingdom kingdom)
         {
-            return _behavior == null ? new List<SuccessionClaim>() : _behavior.GetClaimants(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? new List<SuccessionClaim>() : behavior.GetClaimants(kingdom);
         }
 
         public static Hero GetUnderageHeir(Kingdom kingdom)
         {
-            return _behavior == null ? null : _behavior.GetMinorHeir(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? null : behavior.GetMinorHeir(kingdom);
         }
 
         public static Hero GetRegent(Kingdom kingdom)
         {
-            return _behavior == null ? null : _behavior.GetRegent(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? null : behavior.GetRegent(kingdom);
         }
 
         public static float GetLegitimacy(Kingdom kingdom)
         {
-            return _behavior == null ? 50f : _behavior.GetLegitimacy(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? 50f : behavior.GetLegitimacy(kingdom);
         }
 
         public static bool IsCoronated(Kingdom kingdom)
         {
-            return _behavior != null && _behavior.IsCoronated(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior != null && behavior.IsCoronated(kingdom);
         }
 
         public static Hero GetPretender(Kingdom kingdom)
         {
-            return _behavior == null ? null : _behavior.GetPretender(kingdom);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? null : behavior.GetPretender(kingdom);
         }
 
         public static ClanRecognition GetRecognition(Kingdom kingdom, Clan clan)
         {
-            return _behavior == null ? ClanRecognition.Neutral : _behavior.GetRecognition(kingdom, clan);
+            SuccessionCampaignBehavior behavior = CurrentBehavior;
+            return behavior == null ? ClanRecognition.Neutral : behavior.GetRecognition(kingdom, clan);
         }
     }
 }

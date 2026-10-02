@@ -28,6 +28,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics.Vectors">
       <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\System.Numerics.Vectors.dll</HintPath>
       <Private>false</Private>
@@ -40,8 +41,28 @@
       <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="TaleWorlds.InputSystem">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.GauntletUI">
       <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine.GauntletUI">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.GauntletUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.DotNet">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.TwoDimension">
+      <HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.TwoDimension.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.Core">
@@ -76,6 +97,15 @@
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
     <Compile Include="Approved560CalendarFixesSubModule.cs" />
+    <Compile Include="AocMapBarCustomWidgets.cs" />
+    <Compile Include="AocMapBarSeasonPointerWidget.cs" />
+    <Compile Include="AocPacingDiagnostics.cs" />
+    <Compile Include="MapBarDateRefreshFix.cs" />
+    <Compile Include="WorkshopRecipeCadenceFix.cs" />
+    <Compile Include="WorkshopPaymentConservationFix.cs" />
+    <Compile Include="WorkshopApprovalQuoteFix.cs" />
+    <Compile Include="SettlementPaymentConservationFix.cs" />
+    <Compile Include="AiSettlementSaleQuantityFix.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

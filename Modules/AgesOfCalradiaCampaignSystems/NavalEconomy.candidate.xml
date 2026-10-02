@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Opt-in candidate, not a certified balance default. Missing file keeps native behavior. -->
+<NavalEconomy SchemaVersion="1" Enabled="true" HullBasis="0.01" />

@@ -49,7 +49,10 @@ namespace AgesOfCalradiaLogistics
             }
 
             Formation source = team.FormationsIncludingEmpty
-                .Where(formation => formation.CountOfDetachableNonPlayerUnits > 0)
+                .Where(formation => formation.CountOfDetachableNonPlayerUnits > 0
+                    && !formation.HasPlayerControlledTroop
+                    && (formation.LogicalClass == FormationClass.Infantry
+                        || formation.LogicalClass == FormationClass.HeavyInfantry))
                 .OrderByDescending(formation => formation.CountOfDetachableNonPlayerUnits)
                 .FirstOrDefault();
             Formation guard = team.FormationsIncludingEmpty

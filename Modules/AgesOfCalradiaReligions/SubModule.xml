@@ -2,7 +2,7 @@
 <Module>
   <Name value="Ages of Calradia Religions" />
   <Id value="AgesOfCalradiaReligions" />
-  <Version value="v0.9.3" />
+  <Version value="v0.10.0" />
   <SingleplayerModule value="true" />
   <MultiplayerModule value="false" />
   <Official value="false" />
@@ -13,13 +13,14 @@
     <DependedModule Id="Native" DependentVersion="v1.4.8" />
     <DependedModule Id="SandBoxCore" DependentVersion="v1.4.8" />
     <DependedModule Id="Sandbox" DependentVersion="v1.4.8" />
-    <DependedModule Id="AgesOfCalradia" DependentVersion="v1.5.12" />
+    <DependedModule Id="AgesOfCalradia" DependentVersion="v1.5.14" />
   </DependedModules>
   <DependedModuleMetadatas>
     <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="v1.4.8" />
     <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v1.4.8" />
     <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v1.4.8" />
-    <DependedModuleMetadata id="AgesOfCalradia" order="LoadBeforeThis" version="v1.5.12" />
+    <DependedModuleMetadata id="AgesOfCalradia" order="LoadBeforeThis" version="v1.5.14" />
+    <DependedModuleMetadata id="NavalDLC" order="LoadBeforeThis" version="v1.2.8" optional="true" />
     <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="v1.4.8" optional="true" />
   </DependedModuleMetadatas>
   <SubModules>
@@ -27,6 +28,15 @@
       <Name value="Ages of Calradia Religions" />
       <DLLName value="AgesOfCalradiaReligions.dll" />
       <SubModuleClassType value="AgesOfCalradiaReligions.ReligionSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+        <Tag key="IsNoRenderModeElement" value="false" />
+      </Tags>
+    </SubModule>
+    <SubModule>
+      <Name value="Ages of Calradia Religions Shipwright" />
+      <DLLName value="AgesOfCalradiaReligions.Shipwright.dll" />
+      <SubModuleClassType value="AgesOfCalradiaReligions.Shipwright.ShipwrightSubModule" />
       <Tags>
         <Tag key="DedicatedServerType" value="none" />
         <Tag key="IsNoRenderModeElement" value="false" />

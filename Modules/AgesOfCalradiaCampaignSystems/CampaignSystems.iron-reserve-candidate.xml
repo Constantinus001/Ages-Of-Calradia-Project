@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Offline candidate, not installed. On deployment merge this ONE attribute
+     into the user's existing Procurement section; do not overwrite overrides. -->
+<CampaignSystems schema="1">
+  <Procurement IronSupplierReserveDays="14" />
+</CampaignSystems>

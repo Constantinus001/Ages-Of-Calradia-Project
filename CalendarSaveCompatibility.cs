@@ -24,7 +24,11 @@ namespace TwelveMonthCalendar
         // stored an additional TickMapTime multiplier and are converted once on
         // load so their old default of 1.00 becomes Bannerlord's native 4x
         // fast-forward speed rather than an unexpectedly slow 1x speed.
-        public const int CurrentSchemaVersion = 5;
+        // v6 migrates the old automatic 0.15/4x pacing signature to the
+        // calibrated three-hour normal-year / ninety-minute fast-forward
+        // target. Manual profiles
+        // retain their values.
+        public const int CurrentSchemaVersion = 6;
         private const string SerializedRootName = "CalendarCampaignProfile";
         private const int MaximumSerializedLength = 32768;
 
@@ -114,7 +118,7 @@ namespace TwelveMonthCalendar
                 return true;
             }
 
-            if (SchemaVersion != 1 && SchemaVersion != 2 && SchemaVersion != 3 && SchemaVersion != 4)
+            if (SchemaVersion != 1 && SchemaVersion != 2 && SchemaVersion != 3 && SchemaVersion != 4 && SchemaVersion != 5)
             {
                 return false;
             }
@@ -131,6 +135,13 @@ namespace TwelveMonthCalendar
                 FastForwardTimeMultiplier = Math.Min(
                     CalendarSettingsState.MaximumPacingMultiplier,
                     Math.Max(CalendarSettingsState.MinimumPacingMultiplier, FastForwardTimeMultiplier));
+            }
+            if (AutoCampaignTimeScale
+                && NearlyEqual(CampaignTimeScale, CalendarSettingsState.PreviousAutomaticCampaignTimeScale)
+                && NearlyEqual(FastForwardTimeMultiplier, CalendarSettingsState.PreviousAutomaticFastForwardTimeMultiplier))
+            {
+                CampaignTimeScale = CalendarSettingsState.DefaultCampaignTimeScale;
+                FastForwardTimeMultiplier = CalendarSettingsState.DefaultFastForwardTimeMultiplier;
             }
             AnnualBalanceEnabled = true;
             SchemaVersion = CurrentSchemaVersion;
@@ -167,7 +178,7 @@ namespace TwelveMonthCalendar
                 return false;
             }
 
-            if (!IsFinite(CampaignTimeScale) || CampaignTimeScale < 0.01f || CampaignTimeScale > 1f
+            if (!IsFinite(CampaignTimeScale) || CampaignTimeScale < CalendarSettingsState.MinimumCampaignTimeScale || CampaignTimeScale > CalendarSettingsState.MaximumCampaignTimeScale
                 || !IsFinite(NormalPlayTimeMultiplier)
                 || !NearlyEqual(NormalPlayTimeMultiplier, CalendarSettingsState.DefaultNormalPlayTimeMultiplier)
                 || !IsFinite(FastForwardTimeMultiplier)
@@ -358,7 +369,7 @@ namespace TwelveMonthCalendar
                     return false;
                 }
 
-                if (candidate.SchemaVersion >= CurrentSchemaVersion
+                if (candidate.SchemaVersion >= 5
                     && !TryReadBoolean(root, "LegacyNativeAgeBasis", out candidate.LegacyNativeAgeBasis))
                 {
                     failure = "the serialized profile has a missing or invalid age-compatibility setting.";

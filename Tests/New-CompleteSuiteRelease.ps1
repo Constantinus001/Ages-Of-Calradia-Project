@@ -132,7 +132,7 @@ try {
     $worldEventsManifest = Join-Path $worldEventsRoot 'RuntimeAssetManifest.txt'
     $requiredWorldEventsAssets = @(Get-Content -LiteralPath $worldEventsManifest |
         ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
-    if ($requiredWorldEventsAssets.Count -ne 19) { throw 'Complete-suite World Events skin manifest is incomplete.' }
+    if ($requiredWorldEventsAssets.Count -ne 24) { throw 'Complete-suite World Events skin manifest is incomplete.' }
     foreach ($asset in $requiredWorldEventsAssets) {
         if (-not (Test-Path -LiteralPath (Join-Path $worldEventsRoot $asset) -PathType Leaf)) {
             throw "Complete suite is missing World Events UI asset: $asset"

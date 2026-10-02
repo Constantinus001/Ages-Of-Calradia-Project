@@ -13,11 +13,10 @@ namespace AgesOfCalradiaSuccession
 {
     internal static class SuccessionDebugMenu
     {
-        private static SuccessionCampaignBehavior _behavior;
+        private static SuccessionCampaignBehavior _behavior { get { return SuccessionService.CurrentBehavior; } }
 
         internal static void Register(CampaignGameStarter starter, SuccessionCampaignBehavior behavior)
         {
-            _behavior = behavior;
             starter.AddGameMenuOption("town", "aoc_debug_kill_ruler_town", "[DEBUG] Kill a ruler to test succession", CanOpen, Open, false, -1);
             starter.AddGameMenuOption("castle", "aoc_debug_kill_ruler_castle", "[DEBUG] Kill a ruler to test succession", CanOpen, Open, false, -1);
             starter.AddGameMenuOption("village", "aoc_debug_kill_ruler_village", "[DEBUG] Kill a ruler to test succession", CanOpen, Open, false, -1);

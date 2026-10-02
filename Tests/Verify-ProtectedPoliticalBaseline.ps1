@@ -1,6 +1,6 @@
 param(
     [string]$Root = (Split-Path -Parent $PSScriptRoot),
-    [string]$InstalledModuleRoot = 'C:\Program Files\Steam\steamapps\common\Mount & Blade II Bannerlord\Modules\Ages Of Calradia',
+    [string]$InstalledModuleRoot = 'C:\Program Files\Steam\steamapps\common\Mount & Blade II Bannerlord\Modules\AOC CORE',
     [switch]$SkipInstalled
 )
 

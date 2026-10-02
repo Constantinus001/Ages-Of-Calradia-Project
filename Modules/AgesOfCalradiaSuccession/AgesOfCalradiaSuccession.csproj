@@ -21,8 +21,12 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType><Optimize>true</Optimize><DefineConstants>TRACE</DefineConstants><WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(EnableSuccessionDiagnostics)' == 'true' ">
+    <DefineConstants>$(DefineConstants);SUCCESSION_DIAGNOSTICS</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" /><Reference Include="System.Core" />
+    <Reference Include="0Harmony"><HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="AgesOfCalradiaReligions"><HintPath>$(ReligionsAssemblyPath)</HintPath><Private>false</Private></Reference>
     <Reference Include="TaleWorlds.CampaignSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="TaleWorlds.Core"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath><Private>false</Private></Reference>
@@ -34,6 +38,9 @@
   <ItemGroup>
     <Compile Include="SuccessionSubModule.cs" />
     <Compile Include="SuccessionCampaignBehavior.cs" />
+    <Compile Include="SuccessionDeathIntegration.cs" />
+    <Compile Include="SuccessionDispatchQueue.cs" />
+    <Compile Include="SuccessionElectionPatches.cs" />
     <Compile Include="SuccessionLaw.cs" />
     <Compile Include="SuccessionClaim.cs" />
     <Compile Include="SuccessionResolver.cs" />
@@ -44,6 +51,7 @@
     <Compile Include="SuccessionPoliticsPersistence.cs" />
     <Compile Include="SuccessionCoronationMenu.cs" />
     <Compile Include="SuccessionCivilWar.cs" />
+    <Compile Include="SuccessionCrisisController.cs" />
     <Compile Include="SuccessionCampaignMapBorderBridge.cs" />
     <Compile Include="SuccessionReligionBridge.cs" />
     <Compile Include="SuccessionDiagnostics.cs" />

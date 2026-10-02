@@ -12,6 +12,10 @@ namespace AgesOfCalradiaLogistics
 
         internal static void Info(string message) { Write("INFO", message); }
         internal static void Warning(string message) { Write("WARN", message); }
+        internal static void Error(string message, Exception exception)
+        {
+            Write("ERROR", message + " " + (exception == null ? string.Empty : exception.GetType().Name + ": " + exception.Message));
+        }
 
         private static void Write(string level, string message)
         {

@@ -1,0 +1,20 @@
+<Module>
+  <Name value="Ages of Calradia War Score Recovery" />
+  <Id value="AgesOfCalradiaWarScoreRecovery" />
+  <Version value="v1.1.0" />
+  <SingleplayerModule value="true" />
+  <SubModules>
+    <SubModule>
+      <Name value="AgesOfCalradia.WarScoreRecovery" />
+      <DLLName value="AgesOfCalradia.WarScoreRecovery.dll" />
+      <SubModuleClassType value="AgesOfCalradia.WarScoreRecovery.WarScoreRecoverySubModule" />
+      <Tags><Tag key="DedicatedServerType" value="none" /></Tags>
+    </SubModule>
+  </SubModules>
+  <DependedModules>
+    <DependedModule Id="Native" />
+    <DependedModule Id="SandBoxCore" />
+    <DependedModule Id="Sandbox" />
+    <DependedModule Id="AgesOfCalradia" />
+  </DependedModules>
+</Module>

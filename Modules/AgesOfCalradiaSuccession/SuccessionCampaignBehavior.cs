@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -14,12 +13,20 @@ namespace AgesOfCalradiaSuccession
     /// Replaces only native kingdom ruler elections with deterministic hereditary
     /// resolution. It does not touch clan inheritance, politics UI, or map assets.
     /// </summary>
-    public sealed class SuccessionCampaignBehavior : CampaignBehaviorBase
+    public sealed partial class SuccessionCampaignBehavior : CampaignBehaviorBase
     {
         private const string StateKey = "AOC_Succession_State_v2";
         private const string PoliticsKey = "AOC_Succession_Politics_v1";
         private string _payload = string.Empty;
         private string _politicsPayload = string.Empty;
+        private SuccessionCrisisController _crises;
+        internal SuccessionCrisisController Crises { get { return _crises ?? (_crises = new SuccessionCrisisController(this)); } }
+        private bool IsCrisisBusy { get { return Crises.IsBusy; } }
+        internal bool CrisisBlocksRealm(Kingdom kingdom) { return Crises.CrisisBlocksRealm(kingdom); }
+        internal string GetCrisisStatus(Kingdom kingdom) { return Crises.GetCrisisStatus(kingdom); }
+        private void AuditCrises() { Crises.Audit(); }
+        internal bool TryBeginCrisis(Kingdom kingdom, Hero claimant, string id) { return Crises.TryBeginCrisis(kingdom, claimant, id); }
+        internal void FinishCrisisCreation(Kingdom kingdom, bool success) { Crises.FinishCrisisCreation(kingdom, success); }
         private readonly Dictionary<string, string> _lawByKingdom = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _dynastyByKingdom = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _monarchByKingdom = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -37,13 +44,15 @@ namespace AgesOfCalradiaSuccession
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.KingdomCreatedEvent.AddNonSerializedListener(this, OnKingdomCreated);
-            CampaignEvents.KingdomDecisionAdded.AddNonSerializedListener(this, OnKingdomDecisionAdded);
+            CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+            CampaignEvents.TickEvent.AddNonSerializedListener(this, OnSuccessionTick);
             CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
-            SuccessionService.Attach(this);
         }
 
         public override void SyncData(IDataStore dataStore)
         {
+            Crises.SyncData(dataStore);
+            SyncDispatchData(dataStore);
             if (dataStore.IsSaving)
                 _payload = SuccessionPersistence.Serialize(_lawByKingdom, _dynastyByKingdom, _monarchByKingdom, _minorHeirByKingdom, _regentByKingdom);
             dataStore.SyncData(StateKey, ref _payload);
@@ -63,7 +72,8 @@ namespace AgesOfCalradiaSuccession
             if (kingdom == null) return SuccessionLaw.AbsolutePrimogeniture;
             string value;
             SuccessionLaw law;
-            if (_lawByKingdom.TryGetValue(kingdom.StringId, out value) && Enum.TryParse(value, out law)) return law;
+            if (_lawByKingdom.TryGetValue(kingdom.StringId, out value) && Enum.TryParse(value, out law)
+                && Enum.IsDefined(typeof(SuccessionLaw), law)) return law;
             law = SuccessionResolver.DefaultLawFor(kingdom);
             _lawByKingdom[kingdom.StringId] = law.ToString();
             return law;
@@ -90,7 +100,9 @@ namespace AgesOfCalradiaSuccession
         {
             string value = Get(_legitimacyByKingdom, kingdom == null ? null : kingdom.StringId);
             float parsed;
-            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) ? parsed : 50f;
+            if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)
+                || float.IsNaN(parsed) || float.IsInfinity(parsed)) return 50f;
+            return Math.Max(0f, Math.Min(100f, parsed));
         }
 
         internal bool IsCoronated(Kingdom kingdom)
@@ -100,20 +112,29 @@ namespace AgesOfCalradiaSuccession
 
         internal Hero GetPretender(Kingdom kingdom)
         {
-            return FindHero(Get(_pretenderByKingdom, kingdom == null ? null : kingdom.StringId));
+            Hero pretender = FindHero(Get(_pretenderByKingdom, kingdom == null ? null : kingdom.StringId));
+            return SuccessionResolver.IsEligibleClanLeader(kingdom, pretender)
+                && pretender.Clan != kingdom.RulingClan && pretender != GetRegent(kingdom)
+                && (GetLaw(kingdom) != SuccessionLaw.AgnaticPrimogeniture || !pretender.IsFemale)
+                ? pretender : null;
         }
 
         internal ClanRecognition GetRecognition(Kingdom kingdom, Clan clan)
         {
             string value = Get(_recognitionByRealmClan, RecognitionKey(kingdom, clan));
             ClanRecognition parsed;
-            return Enum.TryParse(value, out parsed) ? parsed : ClanRecognition.Neutral;
+            return Enum.TryParse(value, out parsed) && Enum.IsDefined(typeof(ClanRecognition), parsed)
+                ? parsed : ClanRecognition.Neutral;
         }
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
+#if DEBUG || SUCCESSION_DIAGNOSTICS
             RunSafely("settlement debug menu registration", delegate { SuccessionDebugMenu.Register(starter, this); });
+#endif
             RunSafely("coronation menu registration", delegate { SuccessionCoronationMenu.Register(starter, this); });
+            RunSafely("pending succession recovery", RecoverPendingSuccessions);
+            RunSafely("regency recovery audit", AuditRegencies);
             RunSafely("kingdom snapshot initialization", EnsureKingdomSnapshots);
             RunSafely("political-state initialization", EnsurePoliticalStates);
             RunSafely("religious legitimacy startup audit", delegate
@@ -128,6 +149,7 @@ namespace AgesOfCalradiaSuccession
         {
             RunSafely("daily regency audit", AuditRegencies);
             RunSafely("daily kingdom snapshot", EnsureKingdomSnapshots);
+            RunSafely("daily vacant throne audit", AuditVacantThrones);
             RunSafely("daily political-state update", UpdatePoliticalStates);
         }
 
@@ -136,24 +158,26 @@ namespace AgesOfCalradiaSuccession
             Snapshot(kingdom);
         }
 
-        private void OnKingdomDecisionAdded(KingdomDecision decision, bool isPlayerInvolved)
+        private void ResolveSuccession(Kingdom kingdom, Hero abdicator = null)
         {
-            KingSelectionKingdomDecision kingSelection = decision as KingSelectionKingdomDecision;
-            Kingdom kingdom = kingSelection == null ? null : kingSelection.Kingdom;
-            if (kingdom == null) return;
+            if (kingdom == null || kingdom.IsEliminated) return;
 
             string kingdomId = kingdom.StringId;
             Clan dynasty = FindClan(Get(_dynastyByKingdom, kingdomId));
             Hero previousMonarch = FindHero(Get(_monarchByKingdom, kingdomId));
             SuccessionLaw law = GetLaw(kingdom);
             Hero recordedMinor = FindHero(Get(_minorHeirByKingdom, kingdomId));
-            if (IsUnderageHeir(recordedMinor))
+            if (recordedMinor != null && recordedMinor.IsAlive && recordedMinor.IsActive
+                && recordedMinor.Clan != null && recordedMinor.Clan.Kingdom == kingdom && !recordedMinor.Clan.IsEliminated)
             {
-                AppointRegent(kingdom, recordedMinor, dynasty, kingSelection);
+                if (recordedMinor.Age < SuccessionResolver.AdultAge)
+                    AppointRegent(kingdom, recordedMinor, dynasty, abdicator);
+                else
+                    CrownAdultHeir(kingdom, recordedMinor, law, "completion of the recorded regency during succession dispatch");
                 return;
             }
 
-            Hero dynasticHeir = SuccessionResolver.FindLawfulDynasticHeir(dynasty, previousMonarch, law);
+            Hero dynasticHeir = SuccessionResolver.FindLawfulDynasticHeir(dynasty, previousMonarch, law, kingdom);
             if (dynasticHeir != null && (dynasticHeir.Clan == null || dynasticHeir.Clan.Kingdom != kingdom))
             {
                 SuccessionDiagnostics.Info("Dynastic claimant " + dynasticHeir.Name + " is outside " + kingdom.Name + "; foreign-clan transfer deferred.");
@@ -165,25 +189,24 @@ namespace AgesOfCalradiaSuccession
                 {
                     _minorHeirByKingdom[kingdomId] = dynasticHeir.StringId;
                     BeginAccession(kingdom, dynasticHeir, "Regency", true);
-                    AppointRegent(kingdom, dynasticHeir, dynasty, kingSelection);
+                    AppointRegent(kingdom, dynasticHeir, dynasty, abdicator);
                     return;
                 }
 
-                kingdom.RemoveDecision(kingSelection);
                 CrownAdultHeir(kingdom, dynasticHeir, law, "lawful dynastic heir");
                 return;
             }
 
             bool emergency = false;
-            List<SuccessionClaim> claims = SuccessionResolver.Rank(kingdom, dynasty, previousMonarch, law);
+            List<SuccessionClaim> claims = SuccessionResolver.Rank(kingdom, dynasty, previousMonarch, law)
+                .Where(c => c.Hero != previousMonarch && c.Hero != abdicator).ToList();
             if (claims.Count == 0)
             {
                 emergency = true;
-                claims = SuccessionResolver.RankEmergency(kingdom, dynasty);
+                claims = SuccessionResolver.RankEmergency(kingdom, dynasty).Where(c => c.Hero != previousMonarch && c.Hero != abdicator).ToList();
                 SuccessionDiagnostics.Info("Normal claimant order exhausted for " + kingdom.Name + "; deterministic emergency order invoked.");
             }
 
-            kingdom.RemoveDecision(kingSelection);
             if (claims.Count == 0)
             {
                 SuccessionDiagnostics.Info("No living clan leader exists for " + kingdom.Name + "; ruler vote cancelled without a transfer target.");
@@ -191,11 +214,21 @@ namespace AgesOfCalradiaSuccession
             }
 
             SuccessionClaim heir = claims[0];
+            if (heir.Hero.Age < SuccessionResolver.AdultAge)
+            {
+                _dynastyByKingdom[kingdomId] = heir.Clan.StringId;
+                _minorHeirByKingdom[kingdomId] = heir.Hero.StringId;
+                BeginAccession(kingdom, heir.Hero, "Regency", true);
+                AppointRegent(kingdom, heir.Hero, heir.Clan, abdicator);
+                return;
+            }
             if (kingdom.RulingClan != heir.Clan)
                 ChangeRulingClanAction.Apply(kingdom, heir.Clan);
+            VerifyNativeRuler(kingdom, heir.Hero);
 
             _dynastyByKingdom[kingdomId] = heir.Clan.StringId;
             _monarchByKingdom[kingdomId] = heir.Hero.StringId;
+            _minorHeirByKingdom.Remove(kingdomId);
             BeginAccession(kingdom, heir.Hero, emergency ? "Emergency" : "Collateral", false);
             string message = kingdom.Name + " passes by " + LawName(law) + " to " + heir.Hero.Name + ".";
             SuccessionDiagnostics.Info(message + " Basis: " + heir.Explanation + ". Native ruler vote cancelled.");
@@ -212,6 +245,9 @@ namespace AgesOfCalradiaSuccession
             if (kingdom == null || kingdom.IsEliminated) return;
             string id = kingdom.StringId;
             if (!_lawByKingdom.ContainsKey(id)) _lawByKingdom[id] = SuccessionResolver.DefaultLawFor(kingdom).ToString();
+            if (_dispatch.Owns(id) || CrisisBlocksRealm(kingdom)) return;
+            Hero recorded = FindHero(Get(_monarchByKingdom, id));
+            if (recorded != null && !recorded.IsAlive) return;
             if (IsUnderageHeir(FindHero(Get(_minorHeirByKingdom, id)))) return;
             if (kingdom.RulingClan != null && kingdom.Leader != null && kingdom.Leader.IsAlive)
             {
@@ -220,21 +256,22 @@ namespace AgesOfCalradiaSuccession
             }
         }
 
-        private void AppointRegent(Kingdom kingdom, Hero heir, Clan dynasty, KingSelectionKingdomDecision decision)
+        private void AppointRegent(Kingdom kingdom, Hero heir, Clan dynasty, Hero abdicator = null)
         {
             List<SuccessionClaim> candidates = SuccessionResolver.Rank(kingdom, dynasty, FindHero(Get(_monarchByKingdom, kingdom.StringId)), GetLaw(kingdom));
-            SuccessionClaim regentClaim = candidates.FirstOrDefault(c => c.Hero != heir && c.Hero.Age >= SuccessionResolver.AdultAge);
+            SuccessionClaim regentClaim = candidates.FirstOrDefault(c => c.Hero != heir && c.Hero != abdicator && c.Hero.Age >= SuccessionResolver.AdultAge);
             if (regentClaim == null)
-                regentClaim = SuccessionResolver.RankEmergency(kingdom, dynasty).FirstOrDefault(c => c.Hero != heir && c.Hero.Age >= SuccessionResolver.AdultAge);
+                regentClaim = SuccessionResolver.RankEmergency(kingdom, dynasty).FirstOrDefault(c => c.Hero != heir && c.Hero != abdicator && c.Hero.Age >= SuccessionResolver.AdultAge);
 
-            if (decision != null) kingdom.RemoveDecision(decision);
             if (regentClaim == null)
             {
+                _regentByKingdom.Remove(kingdom.StringId);
                 SuccessionDiagnostics.Info("No adult regent exists for underage heir " + heir.Name + " of " + kingdom.Name + ". Vote cancelled; regency remains vacant.");
                 return;
             }
 
             if (kingdom.RulingClan != regentClaim.Clan) ChangeRulingClanAction.Apply(kingdom, regentClaim.Clan);
+            VerifyNativeRuler(kingdom, regentClaim.Hero);
             _regentByKingdom[kingdom.StringId] = regentClaim.Hero.StringId;
             if (string.IsNullOrEmpty(Get(_accessionBasisByKingdom, kingdom.StringId)))
                 BeginAccession(kingdom, heir, "Regency", true);
@@ -250,6 +287,7 @@ namespace AgesOfCalradiaSuccession
             if (kingdom == null || heir == null || heir.Clan == null || heir.Clan.Kingdom != kingdom || !heir.IsAlive || heir.Age < SuccessionResolver.AdultAge) return;
             if (heir.Clan.Leader != heir) ChangeClanLeaderAction.ApplyWithSelectedNewLeader(heir.Clan, heir);
             if (kingdom.RulingClan != heir.Clan) ChangeRulingClanAction.Apply(kingdom, heir.Clan);
+            VerifyNativeRuler(kingdom, heir);
             string id = kingdom.StringId;
             _dynastyByKingdom[id] = heir.Clan.StringId;
             _monarchByKingdom[id] = heir.StringId;
@@ -266,9 +304,10 @@ namespace AgesOfCalradiaSuccession
             if (hero == null) return;
             foreach (Kingdom kingdom in Kingdom.All.ToList())
             {
+                if (_dispatch.Owns(kingdom.StringId) || CrisisBlocksRealm(kingdom)) continue;
                 if (Get(_minorHeirByKingdom, kingdom.StringId) == hero.StringId)
                 {
-                    CrownAdultHeir(kingdom, hero, GetLaw(kingdom), "completion of the lawful regency");
+                    RequestSuccession(kingdom, "maturity:" + hero.StringId);
                     return;
                 }
             }
@@ -278,32 +317,18 @@ namespace AgesOfCalradiaSuccession
         {
             foreach (Kingdom kingdom in Kingdom.All.ToList())
             {
+                if (kingdom == null || kingdom.IsEliminated) continue;
                 string id = kingdom.StringId;
+                if (_dispatch.Owns(id) || CrisisBlocksRealm(kingdom)) continue;
                 string heirId = Get(_minorHeirByKingdom, id);
                 if (string.IsNullOrEmpty(heirId)) continue;
                 Hero heir = FindHero(heirId);
-                if (heir != null && heir.IsAlive && heir.IsActive)
-                {
-                    if (heir.Age >= SuccessionResolver.AdultAge)
-                        CrownAdultHeir(kingdom, heir, GetLaw(kingdom), "daily regency maturity audit");
-                    else
-                    {
-                        Hero regent = FindHero(Get(_regentByKingdom, id));
-                        if (regent == null || !regent.IsAlive || !regent.IsActive || kingdom.Leader != regent)
-                            AppointRegent(kingdom, heir, FindClan(Get(_dynastyByKingdom, id)), null);
-                    }
-                    continue;
-                }
-
-                _minorHeirByKingdom.Remove(id);
-                _regentByKingdom.Remove(id);
-                Clan dynasty = FindClan(Get(_dynastyByKingdom, id));
-                Hero next = SuccessionResolver.FindLawfulDynasticHeir(dynasty, FindHero(Get(_monarchByKingdom, id)), GetLaw(kingdom));
-                if (next != null && (next.Clan == null || next.Clan.Kingdom != kingdom)) next = null;
-                if (next != null && next.Age < SuccessionResolver.AdultAge)
-                    _minorHeirByKingdom[id] = next.StringId;
-                else if (next != null)
-                    CrownAdultHeir(kingdom, next, GetLaw(kingdom), "replacement after the death of an underage heir");
+                Hero regent = FindHero(Get(_regentByKingdom, id));
+                if (heir == null || !heir.IsAlive || !heir.IsActive || heir.Age >= SuccessionResolver.AdultAge
+                    || regent == null || !regent.IsAlive || !regent.IsActive || kingdom.Leader != regent)
+                    // Retry vacant/ineligible regencies at most once per day;
+                    // partial native failures remain realm-quarantined by dispatch.
+                    RequestSuccession(kingdom, "regency-audit:" + heirId + ":" + CurrentDay.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -314,7 +339,10 @@ namespace AgesOfCalradiaSuccession
 
         internal void HoldCoronation(Kingdom kingdom, Hero ruler, bool notify)
         {
-            if (kingdom == null || ruler == null || kingdom.Leader != ruler || IsCoronated(kingdom)) return;
+            if (kingdom == null || kingdom.IsEliminated || ruler == null || !ruler.IsAlive
+                || _dispatch.Owns(kingdom.StringId) || CrisisBlocksRealm(kingdom)
+                || ruler.Age < SuccessionResolver.AdultAge || kingdom.Leader != ruler
+                || GetMinorHeir(kingdom) != null || IsCoronated(kingdom)) return;
             _coronatedByKingdom[kingdom.StringId] = "true";
             EvaluatePoliticalState(kingdom, ruler);
             string message = ruler.Name + " is crowned ruler of " + kingdom.Name + ". Legitimacy is now "
@@ -323,7 +351,7 @@ namespace AgesOfCalradiaSuccession
             if (notify) InformationManager.DisplayMessage(new InformationMessage(message));
         }
 
-        internal void RegisterDebugCivilWar(Kingdom original, Kingdom claimantRealm, Hero pretender)
+        internal void RegisterClaimantRealm(Kingdom original, Kingdom claimantRealm, Hero pretender)
         {
             _dynastyByKingdom[claimantRealm.StringId] = pretender.Clan.StringId;
             _monarchByKingdom[claimantRealm.StringId] = pretender.StringId;
@@ -332,13 +360,36 @@ namespace AgesOfCalradiaSuccession
             EvaluatePoliticalState(original, GetMinorHeir(original) ?? original.Leader);
         }
 
+        internal int GetAccessionDay(Kingdom kingdom)
+        {
+            int day;
+            return kingdom != null && int.TryParse(Get(_accessionDayByKingdom, kingdom.StringId),
+                NumberStyles.Integer, CultureInfo.InvariantCulture, out day) ? day : -1;
+        }
+
+        internal void CommitClaimantSettlement(Kingdom original, Hero claimant, bool victory)
+        {
+            if (victory)
+            {
+                string id = original.StringId;
+                _dynastyByKingdom[id] = claimant.Clan.StringId;
+                _monarchByKingdom[id] = claimant.StringId;
+                _minorHeirByKingdom.Remove(id);
+                _regentByKingdom.Remove(id);
+                BeginAccession(original, claimant, "Claimant", false);
+            }
+            else EvaluatePoliticalState(original, GetMinorHeir(original) ?? original.Leader);
+        }
+
         internal List<Clan> GetCivilWarSupporters(Kingdom kingdom, Hero pretender)
         {
             List<Clan> supporters = kingdom == null ? new List<Clan>() : kingdom.Clans
-                .Where(c => c != null && c != kingdom.RulingClan && !c.IsClanTypeMercenary && !c.IsMinorFaction
+                .Where(c => c != null && c != kingdom.RulingClan && SuccessionResolver.IsEligibleClanLeader(kingdom, c.Leader)
+                    && c.Leader.Clan == c
                     && GetRecognition(kingdom, c) == ClanRecognition.SupportsPretender)
                 .ToList();
-            if (pretender != null && pretender.Clan != null && pretender.Clan.Kingdom == kingdom && !supporters.Contains(pretender.Clan))
+            if (SuccessionResolver.IsEligibleClanLeader(kingdom, pretender) && pretender.Clan != kingdom.RulingClan
+                && !supporters.Contains(pretender.Clan))
                 supporters.Insert(0, pretender.Clan);
             return supporters;
         }
@@ -347,7 +398,7 @@ namespace AgesOfCalradiaSuccession
         {
             foreach (Kingdom kingdom in Kingdom.All)
             {
-                if (kingdom == null || kingdom.IsEliminated) continue;
+                if (kingdom == null || kingdom.IsEliminated || _dispatch.Owns(kingdom.StringId) || CrisisBlocksRealm(kingdom)) continue;
                 if (string.IsNullOrEmpty(Get(_accessionBasisByKingdom, kingdom.StringId)))
                 {
                     _accessionBasisByKingdom[kingdom.StringId] = "Established";
@@ -362,7 +413,7 @@ namespace AgesOfCalradiaSuccession
         {
             foreach (Kingdom kingdom in Kingdom.All.ToList())
             {
-                if (kingdom == null || kingdom.IsEliminated) continue;
+                if (kingdom == null || kingdom.IsEliminated || _dispatch.Owns(kingdom.StringId) || CrisisBlocksRealm(kingdom)) continue;
                 Hero subject = GetMinorHeir(kingdom) ?? kingdom.Leader;
                 if (subject == null) continue;
                 int accessionDay;
@@ -445,9 +496,9 @@ namespace AgesOfCalradiaSuccession
 
         internal Hero GetCivilWarPretender(Kingdom kingdom)
         {
+            if (kingdom == null || kingdom.IsEliminated) return null;
             Hero pretender = GetPretender(kingdom);
-            if (pretender != null && pretender.IsAlive && pretender.Clan != null && pretender.Clan.Kingdom == kingdom
-                && pretender.Clan != kingdom.RulingClan) return pretender;
+            if (pretender != null) return pretender;
             return GetClaimants(kingdom).Where(c => c.Hero != kingdom.Leader && c.Clan != kingdom.RulingClan)
                 .Select(c => c.Hero).FirstOrDefault();
         }

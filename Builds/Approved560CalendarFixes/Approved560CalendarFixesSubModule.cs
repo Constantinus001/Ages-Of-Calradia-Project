@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Security.Cryptography;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using TaleWorlds.GauntletUI;
 using TaleWorlds.GauntletUI.BaseTypes;
@@ -19,12 +20,77 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.CampaignSystem.TournamentGames;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Party;
+using TaleWorlds.CampaignSystem.ViewModelCollection.Map.MapBar;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.Information;
+using TaleWorlds.InputSystem;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 
 namespace AgesOfCalradia.Approved560CalendarFixes
 {
+    // UI boundary: the native clock can contain a line break between the time
+    // and meridiem. The target MapBar keeps them together on one compact line.
+    public sealed class CompactMapClockTextWidget : TextWidget
+    {
+        private string _clockSourceText = string.Empty;
+
+        public CompactMapClockTextWidget(UIContext context) : base(context) { }
+
+        public string ClockSourceText
+        {
+            get { return _clockSourceText; }
+            set
+            {
+                string normalized = value ?? string.Empty;
+                if (string.Equals(_clockSourceText, normalized, StringComparison.Ordinal))
+                    return;
+                _clockSourceText = normalized;
+                Text = NormalizeForVerification(normalized);
+            }
+        }
+
+        internal static string NormalizeForVerification(string source)
+        {
+            string normalized = (source ?? string.Empty)
+                .Replace("\r", string.Empty).Trim();
+            string[] lines = normalized.Split(new[] { '\n' },
+                StringSplitOptions.RemoveEmptyEntries);
+            for (int index = 0; index < lines.Length; index++)
+                lines[index] = lines[index].Trim();
+            return string.Join(" ", lines).Trim();
+        }
+    }
+
+    // UI-only formatting: the season is shown by the bezel, leaving only the year below the date.
+    public sealed class MapYearTextWidget : TextWidget
+    {
+        private string _sourceText = string.Empty;
+
+        public MapYearTextWidget(UIContext context) : base(context) { }
+
+        public string SourceText
+        {
+            get { return _sourceText; }
+            set
+            {
+                string normalized = value ?? string.Empty;
+                if (string.Equals(_sourceText, normalized, StringComparison.Ordinal))
+                    return;
+                _sourceText = normalized;
+                Text = ExtractYearForVerification(normalized);
+            }
+        }
+
+        internal static string ExtractYearForVerification(string source)
+        {
+            string normalized = (source ?? string.Empty).Trim();
+            int separator = normalized.IndexOf(',');
+            return separator < 0 ? normalized : normalized.Substring(0, separator).Trim();
+        }
+    }
+
     public sealed class Approved560CalendarFixesSubModule : MBSubModuleBase
     {
         internal const string HarmonyId = "AgesOfCalradia.Approved560CalendarFixes.560F1B51";
@@ -37,6 +103,11 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             {
                 ApprovedCalendarBridge.Validate();
                 CalendarFixTargets.Validate();
+                WorkshopRecipeCadenceFix.ValidateTargets();
+                WorkshopPaymentConservationFix.ValidateTargets();
+                WorkshopApprovalQuoteFix.ValidateTargets();
+                SettlementPaymentConservationFix.ValidateTargets();
+                AiSettlementSaleQuantityFix.ValidateTargets();
 
                 _harmony = new Harmony(HarmonyId);
                 _harmony.PatchAll(typeof(Approved560CalendarFixesSubModule).Assembly);
@@ -47,6 +118,7 @@ namespace AgesOfCalradia.Approved560CalendarFixes
                 // deliberately outside this list.
                 LegacyPatchControl.UnpatchDeclaringTypes(
                     "TwelveMonthCalendar.MapTimeTrackerPatch",
+                    "TwelveMonthCalendar.CampaignPacingPatch",
                     "TwelveMonthCalendar.WorkshopProductionBalancePatch",
                     "TwelveMonthCalendar.WorkshopFoodContextPatch",
                     "TwelveMonthCalendar.VillageFoodProductionBalancePatch",
@@ -68,8 +140,25 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             }
         }
 
+        protected override void OnBeforeInitialModuleScreenSetAsRoot()
+        {
+            base.OnBeforeInitialModuleScreenSetAsRoot();
+            try
+            {
+                // This sidecar owns the MapBar providers and must not rely on
+                // another module's later provider-discovery refresh.
+                TextureProviderFactory.RefreshProviderTypes();
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.WriteLine(
+                    "AgesOfCalradia MapBar texture-provider registration failed safely: " + exception);
+            }
+        }
+
         protected override void OnSubModuleUnloaded()
         {
+            MapTimeControlFourTimesButtonPatch.ResetRegisteredButtons();
             if (_harmony != null)
             {
                 _harmony.UnpatchAll(HarmonyId);
@@ -83,6 +172,7 @@ namespace AgesOfCalradia.Approved560CalendarFixes
     internal static class MapClockMeridiemLayoutPatch
     {
         private static PropertyInfo _timeOfDayProperty;
+        private static bool _smoothClockFailureLogged;
 
         private static MethodBase TargetMethod()
         {
@@ -146,6 +236,124 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             int normalizedHour = ((hour % 24) + 24) % 24;
             return clock + "\n" + (normalizedHour < 12 ? "AM" : "PM");
         }
+
+        internal static void SetSmoothedMinute(object instance, long absoluteMinute)
+        {
+            if (instance == null || _timeOfDayProperty == null)
+                return;
+
+            try
+            {
+                _timeOfDayProperty.SetValue(
+                    instance,
+                    SmoothMapClockMinutePatch.FormatMinuteForVerification(absoluteMinute),
+                    null);
+            }
+            catch (TargetInvocationException exception)
+            {
+                LogSmoothClockFailure(exception);
+            }
+            catch (ArgumentException exception)
+            {
+                LogSmoothClockFailure(exception);
+            }
+        }
+
+        private static void LogSmoothClockFailure(Exception exception)
+        {
+            if (_smoothClockFailureLogged)
+                return;
+
+            _smoothClockFailureLogged = true;
+            System.Diagnostics.Trace.WriteLine(
+                "AOC minute-by-minute map clock failed safely: " + exception);
+        }
+    }
+
+    // Native target: MapTimeControlVM.Tick(), Bannerlord 1.4.8.
+    // Purpose: refresh the native dial value and derive the clock from that same
+    // value. No independent minute catch-up clock. CampaignTime, AI, events,
+    // and simulation ticks remain untouched.
+    // Compatibility/failure: startup validates the native target and protected VM
+    // property. Reflection failures retain the native clock and log once. The pure
+    // dial-to-minute and formatting contracts are covered by the sidecar verifier.
+    [HarmonyPatch]
+    internal static class SmoothMapClockMinutePatch
+    {
+        private static readonly ConditionalWeakTable<MapTimeControlVM, DisplayMinuteState> States =
+            new ConditionalWeakTable<MapTimeControlVM, DisplayMinuteState>();
+
+        private static MethodBase TargetMethod()
+        {
+            return CalendarFixTargets.MapTimeControlTick;
+        }
+
+        private static void Postfix(MapTimeControlVM __instance)
+        {
+            if (__instance == null || Campaign.Current == null || !ApprovedCalendarBridge.ExtendedEnabled)
+                return;
+
+            __instance.Time = CampaignTime.Now.ToHours % 24d;
+            DisplayMinuteState state = States.GetOrCreateValue(__instance);
+            ConfigureNativeHints(__instance, state);
+            MapClockMeridiemLayoutPatch.SetSmoothedMinute(
+                __instance, MinuteFromDialForVerification(__instance.Time));
+        }
+
+        private static void ConfigureNativeHints(MapTimeControlVM instance, DisplayMinuteState state)
+        {
+            if (!ReferenceEquals(state.PauseHint, instance.PauseHint))
+            {
+                state.PauseHint = instance.PauseHint;
+                if (state.PauseHint != null)
+                    state.PauseHint.SetHintCallback(GetPauseHintText);
+            }
+            if (!ReferenceEquals(state.PlayHint, instance.PlayHint))
+            {
+                state.PlayHint = instance.PlayHint;
+                if (state.PlayHint != null)
+                    state.PlayHint.SetHintCallback(GetPlayHintText);
+            }
+            if (!ReferenceEquals(state.FastForwardHint, instance.FastForwardHint))
+            {
+                state.FastForwardHint = instance.FastForwardHint;
+                if (state.FastForwardHint != null)
+                    state.FastForwardHint.SetHintCallback(MapTimeControlFourTimesButtonPatch.GetFastForwardHintText);
+            }
+        }
+
+        private static string GetPauseHintText() { return "Pause [1]"; }
+        private static string GetPlayHintText() { return "Play x1 [2]"; }
+
+        internal static long MinuteFromDialForVerification(double dialHours)
+        {
+            double hourOfDay = dialHours % 24d;
+            if (hourOfDay < 0d) hourOfDay += 24d;
+            return (long)Math.Floor(hourOfDay * 60d);
+        }
+
+        internal static string FormatMinuteForVerification(long absoluteMinute)
+        {
+            const long MinutesPerDay = 24L * 60L;
+            long minuteOfDay = absoluteMinute % MinutesPerDay;
+            if (minuteOfDay < 0)
+                minuteOfDay += MinutesPerDay;
+            int hour = (int)(minuteOfDay / 60L);
+            int minute = (int)(minuteOfDay % 60L);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "{0:00}:{1:00}\n{2}",
+                hour,
+                minute,
+                hour < 12 ? "AM" : "PM");
+        }
+
+        private sealed class DisplayMinuteState
+        {
+            internal BasicTooltipViewModel PauseHint;
+            internal BasicTooltipViewModel PlayHint;
+            internal BasicTooltipViewModel FastForwardHint;
+        }
     }
 
     internal static class ApprovedCalendarBridge
@@ -164,6 +372,9 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         private static PropertyInfo _factor;
         private static PropertyInfo _campaignMultiplier;
         private static MethodInfo _format;
+        private static MethodInfo _getDayOfYear;
+        private static MethodInfo _getYear;
+        private static MethodInfo _isLeapYear;
         private static FieldInfo _nativeFinance;
         private static FieldInfo _nativeSettlementFood;
 
@@ -207,6 +418,9 @@ namespace AgesOfCalradia.Approved560CalendarFixes
                 null);
             if (_format == null)
                 throw new MissingMethodException(_formatterType.FullName, "Format(CampaignTime)");
+            _getDayOfYear = RequireStaticMethod(_timeMathType, "GetDayOfYear", typeof(CampaignTime));
+            _getYear = RequireStaticMethod(_timeMathType, "GetYear", typeof(CampaignTime));
+            _isLeapYear = RequireStaticMethod(_timeMathType, "IsLeapYear", typeof(int));
             _nativeFinance = _financeModelType.GetField(
                 "_native",
                 BindingFlags.Instance | BindingFlags.NonPublic);
@@ -244,6 +458,21 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             return _format == null ? null : _format.Invoke(null, new object[] { time }) as string;
         }
 
+        internal static int GetDayOfYear(CampaignTime time)
+        {
+            return (int)_getDayOfYear.Invoke(null, new object[] { time });
+        }
+
+        internal static int GetYear(CampaignTime time)
+        {
+            return (int)_getYear.Invoke(null, new object[] { time });
+        }
+
+        internal static bool IsLeapYear(int year)
+        {
+            return (bool)_isLeapYear.Invoke(null, new object[] { year });
+        }
+
         internal static bool WrapsNativeFinance(object instance)
         {
             return instance != null
@@ -272,6 +501,17 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             return type;
         }
 
+        private static MethodInfo RequireStaticMethod(
+            Type type, string name, params Type[] parameters)
+        {
+            MethodInfo method = type.GetMethod(name,
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
+                null, parameters, null);
+            if (method == null)
+                throw new MissingMethodException(type.FullName, name);
+            return method;
+        }
+
         private static PropertyInfo RequireProperty(Type type, string name)
         {
             PropertyInfo property = type.GetProperty(
@@ -285,6 +525,9 @@ namespace AgesOfCalradia.Approved560CalendarFixes
     internal static class CalendarFixTargets
     {
         internal static MethodInfo CampaignTickMapTime;
+        internal static MethodInfo MapTimeWidgetUpdate;
+        internal static MethodInfo MapTimeControlTick;
+        internal static MethodInfo ButtonHandleClick;
         internal static MethodInfo WorkshopConversionSpeed;
         internal static MethodInfo TownFoodStocksChange;
         internal static MethodInfo VillageProduction;
@@ -296,6 +539,13 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         internal static void Validate()
         {
             CampaignTickMapTime = AccessTools.Method(typeof(Campaign), "TickMapTime", new[] { typeof(float) });
+            Type mapTimeWidgetType = AccessTools.TypeByName(
+                "TaleWorlds.MountAndBlade.GauntletUI.Widgets.Map.MapBar.MapCurrentTimeVisualWidget");
+            MapTimeWidgetUpdate = mapTimeWidgetType == null
+                ? null
+                : AccessTools.Method(mapTimeWidgetType, "OnUpdate", new[] { typeof(float) });
+            MapTimeControlTick = AccessTools.Method(typeof(MapTimeControlVM), "Tick", Type.EmptyTypes);
+            ButtonHandleClick = AccessTools.Method(typeof(ButtonWidget), "HandleClick");
             WorkshopConversionSpeed = AccessTools.Method(
                 typeof(DefaultWorkshopModel),
                 "GetEffectiveConversionSpeedOfProduction");
@@ -326,6 +576,12 @@ namespace AgesOfCalradia.Approved560CalendarFixes
                 .SingleOrDefault();
 
             if (CampaignTickMapTime == null) throw new MissingMethodException("Campaign.TickMapTime(float)");
+            if (MapTimeWidgetUpdate == null)
+                throw new MissingMethodException("MapCurrentTimeVisualWidget.OnUpdate(float)");
+            if (MapTimeControlTick == null)
+                throw new MissingMethodException("MapTimeControlVM.Tick()");
+            if (ButtonHandleClick == null)
+                throw new MissingMethodException("ButtonWidget.HandleClick()");
             if (WorkshopConversionSpeed == null)
                 throw new MissingMethodException("DefaultWorkshopModel.GetEffectiveConversionSpeedOfProduction");
             if (TownFoodStocksChange == null)
@@ -392,28 +648,218 @@ namespace AgesOfCalradia.Approved560CalendarFixes
     [HarmonyPatch]
     internal static class CampaignSimulationTimeFix
     {
+        // Normal play targets 80 real seconds per campaign day.
+        // The 2x and 4x controls therefore target
+        // 40 and 20 seconds per day without enlarging
+        // Bannerlord's campaign-time quantum or skipping AI work.
+        // The sidecar owns the value because the approved Core DLL remains
+        // byte-for-byte immutable.
+        // Native TickMapTime advances 1080 game seconds per input second at 1x:
+        // 86400 / 1080 = 80 real seconds/day before this factor.
+        internal const float WarbandCampaignTimeScale = 80f / 80f;
+        internal const float WarbandFastForwardMultiplier = 2f;
+        internal const float WarbandFourTimesFastForwardMultiplier = 4f;
+        private static float _selectedFastForwardMultiplier = WarbandFastForwardMultiplier;
+
         private static MethodBase TargetMethod() { return CalendarFixTargets.CampaignTickMapTime; }
 
-        private static void Prefix(ref float realDt)
+        private static void Prefix(Campaign __instance, ref float realDt)
         {
+            float incomingRealDt = realDt;
             if (ApprovedCalendarBridge.ExtendedEnabled)
-                realDt *= ApprovedCalendarBridge.CampaignMultiplier;
+            {
+                bool fastForward = __instance != null && IsFastForward(__instance.TimeControlMode);
+                realDt = ScaleRealDeltaForVerification(realDt, WarbandCampaignTimeScale);
+                if (fastForward)
+                    __instance.SpeedUpMultiplier = _selectedFastForwardMultiplier;
+            }
+            AocPacingDiagnostics.Observe(__instance, incomingRealDt);
+        }
+
+        internal static float ScaleRealDeltaForVerification(float realDt, float campaignMultiplier)
+        {
+            return realDt * campaignMultiplier;
+        }
+
+        internal static bool IsFastForward(CampaignTimeControlMode mode)
+        {
+            return mode == CampaignTimeControlMode.UnstoppableFastForward
+                || mode == CampaignTimeControlMode.UnstoppableFastForwardForPartyWaitTime
+                || mode == CampaignTimeControlMode.StoppableFastForward;
+        }
+
+        internal static float SelectFastForwardMultiplierForVerification(int requestedSpeed)
+        {
+            return requestedSpeed == 4
+                ? WarbandFourTimesFastForwardMultiplier
+                : WarbandFastForwardMultiplier;
+        }
+
+        internal static void SelectFastForwardMultiplier(int requestedSpeed)
+        {
+            _selectedFastForwardMultiplier = SelectFastForwardMultiplierForVerification(requestedSpeed);
+        }
+
+        internal static bool IsFourTimesSelected
+        {
+            get { return Math.Abs(_selectedFastForwardMultiplier - WarbandFourTimesFastForwardMultiplier) < 0.001f; }
         }
     }
 
+    // Native target: MapCurrentTimeVisualWidget.OnUpdate(float), Bannerlord 1.4.8.
+    // Purpose: use the native 2x transition for the added button, then explicitly set
+    // AOC's selected fast-forward multiplier to 4x. This mirrors Better Time's UI
+    // ownership pattern without requiring Better Time at runtime.
+    // Compatibility/failure: the target is resolved during startup validation. If the
+    // native widget changes, the sidecar unloads safely and the map bar stays native.
+    // A button is registered once per widget instance and cleared on module unload.
+    // Verify-Approved560CalendarFixes.ps1 checks the target, XML command, and handler.
     [HarmonyPatch]
+    internal static class MapTimeControlFourTimesButtonPatch
+    {
+        private static readonly Dictionary<ButtonWidget, RegisteredTimeButtons> RegisteredButtonSets =
+            new Dictionary<ButtonWidget, RegisteredTimeButtons>();
+        private static bool _keyActivationFailureLogged;
+
+        private static MethodBase TargetMethod()
+        {
+            return CalendarFixTargets.MapTimeWidgetUpdate;
+        }
+
+        private static void Postfix(object __instance)
+        {
+            Widget mapTimeWidget = __instance as Widget;
+            if (mapTimeWidget == null)
+                return;
+
+            ButtonWidget fourTimesButton = mapTimeWidget.FindChild("FastForward4xButton", true) as ButtonWidget;
+            ButtonWidget twoTimesButton = mapTimeWidget.FindChild("FastForwardButton", true) as ButtonWidget;
+            ButtonWidget playButton = mapTimeWidget.FindChild("PlayButton", true) as ButtonWidget;
+            ButtonWidget pauseButton = mapTimeWidget.FindChild("PauseButton", true) as ButtonWidget;
+            if (fourTimesButton == null || twoTimesButton == null
+                || playButton == null || pauseButton == null)
+                return;
+
+            RegisteredTimeButtons buttons;
+            if (!RegisteredButtonSets.TryGetValue(fourTimesButton, out buttons))
+            {
+                buttons = new RegisteredTimeButtons(
+                    pauseButton,
+                    playButton,
+                    twoTimesButton,
+                    fourTimesButton);
+                RegisteredButtonSets.Add(
+                    fourTimesButton,
+                    buttons);
+                twoTimesButton.ClickEventHandlers.Add(OnTwoTimesClicked);
+                fourTimesButton.ClickEventHandlers.Add(OnFourTimesClicked);
+            }
+
+            if (fourTimesButton.IsVisible
+                && fourTimesButton.IsEnabled
+                && Input.IsKeyPressed(InputKey.D4))
+            {
+                ActivateFourTimesButtonFromKey(fourTimesButton);
+            }
+
+            bool fourTimesSelected = Campaign.Current != null
+                && CampaignSimulationTimeFix.IsFastForward(Campaign.Current.TimeControlMode)
+                && CampaignSimulationTimeFix.IsFourTimesSelected;
+            fourTimesButton.IsSelected = fourTimesSelected;
+            if (fourTimesSelected)
+                twoTimesButton.IsSelected = false;
+        }
+
+        private static void OnTwoTimesClicked(Widget widget)
+        {
+            CampaignSimulationTimeFix.SelectFastForwardMultiplier(2);
+        }
+
+        private static void OnFourTimesClicked(Widget widget)
+        {
+            if (Campaign.Current == null)
+                return;
+
+            CampaignSimulationTimeFix.SelectFastForwardMultiplier(4);
+            Campaign.Current.SpeedUpMultiplier =
+                CampaignSimulationTimeFix.WarbandFourTimesFastForwardMultiplier;
+        }
+
+        private static void ActivateFourTimesButtonFromKey(ButtonWidget fourTimesButton)
+        {
+            try
+            {
+                CalendarFixTargets.ButtonHandleClick.Invoke(fourTimesButton, null);
+            }
+            catch (TargetInvocationException exception)
+            {
+                LogKeyActivationFailure(exception);
+            }
+            catch (MethodAccessException exception)
+            {
+                LogKeyActivationFailure(exception);
+            }
+        }
+
+        private static void LogKeyActivationFailure(Exception exception)
+        {
+            if (_keyActivationFailureLogged)
+                return;
+
+            _keyActivationFailureLogged = true;
+            System.Diagnostics.Trace.WriteLine(
+                "AOC Super Fast Forward [4] key activation failed safely: " + exception);
+        }
+
+        internal static string GetFastForwardHintText()
+        {
+            foreach (RegisteredTimeButtons buttons in RegisteredButtonSets.Values)
+            {
+                if (buttons.FourTimes.IsHovered)
+                    return "Super Fast Forward x4 [4]";
+            }
+            return "Fast Forward x2 [3]";
+        }
+
+        internal static void ResetRegisteredButtons()
+        {
+            foreach (RegisteredTimeButtons buttons in RegisteredButtonSets.Values)
+            {
+                buttons.TwoTimes.ClickEventHandlers.Remove(OnTwoTimesClicked);
+                buttons.FourTimes.ClickEventHandlers.Remove(OnFourTimesClicked);
+            }
+            RegisteredButtonSets.Clear();
+            _keyActivationFailureLogged = false;
+        }
+
+        private sealed class RegisteredTimeButtons
+        {
+            internal RegisteredTimeButtons(
+                ButtonWidget pause,
+                ButtonWidget play,
+                ButtonWidget twoTimes,
+                ButtonWidget fourTimes)
+            {
+                Pause = pause;
+                Play = play;
+                TwoTimes = twoTimes;
+                FourTimes = fourTimes;
+            }
+
+            internal ButtonWidget Pause { get; private set; }
+            internal ButtonWidget Play { get; private set; }
+            internal ButtonWidget TwoTimes { get; private set; }
+            internal ButtonWidget FourTimes { get; private set; }
+        }
+    }
     internal static class WorkshopProductionFix
     {
-        private static MethodBase TargetMethod() { return CalendarFixTargets.WorkshopConversionSpeed; }
-
-        private static void Prefix(Workshop workshop, ref float speed)
+        internal static float ScaleBaseSpeedForVerification(
+            float nativeBaseSpeed,
+            bool producesFood,
+            float factor)
         {
-            // Food workshops remain on Bannerlord's native daily cadence in
-            // the vanilla-food test mode. Other workshops retain the annual
-            // conversion installed by v1.5.12.
-            if (ApprovedCalendarBridge.AnnualEnabled
-                && !VanillaFoodCadence.ProducesFood(workshop))
-                speed *= ApprovedCalendarBridge.Factor;
+            return producesFood ? nativeBaseSpeed : nativeBaseSpeed * factor;
         }
     }
 
@@ -423,22 +869,6 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         {
             return category != null
                 && category.Properties == ItemCategory.Property.BonusToFoodStores;
-        }
-
-        internal static bool ProducesFood(Workshop workshop)
-        {
-            if (workshop == null || workshop.WorkshopType == null)
-                return false;
-
-            foreach (WorkshopType.Production production in workshop.WorkshopType.Productions)
-            {
-                foreach (var output in production.Outputs)
-                {
-                    if (IsFood(output.Item1))
-                        return true;
-                }
-            }
-            return false;
         }
 
         internal static float ScaleDemandForVerification(float nativeDemand, bool isFood, float factor)
@@ -470,22 +900,41 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         }
     }
 
-    // Native target: DefaultVillageProductionCalculatorModel's discrete food
-    // production method. Its legacy annual postfix is retired at startup, so
-    // this method intentionally has no replacement: village food goods remain
-    // on the native daily cadence. The category-aware production patch below
-    // preserves annual conversion for non-food village outputs.
+    // Native 1.4.8 CalculateDailyProductionAmount(Village, ItemObject): retain
+    // native food and its four audited supply inputs. Only the existing annual
+    // adjustment changes; native eligibility, bonuses and discrete stock updates
+    // remain native. Legacy duplicate patches are retired at startup. Unknown
+    // categories retain the previous policy. Verify-VillageInputSupply covers
+    // the allowlist, annual-off, zero output and industrial scaling contracts.
     [HarmonyPatch(typeof(DefaultVillageProductionCalculatorModel), "CalculateDailyProductionAmount")]
     internal static class FoodAwareVillageProductionFix
     {
         private static void Postfix(ItemObject item, ref ExplainedNumber __result)
         {
-            if (!ApprovedCalendarBridge.AnnualEnabled
-                || item == null
-                || VanillaFoodCadence.IsFood(item.ItemCategory))
-                return;
+            if (item != null) ApplyPolicy(item.ItemCategory, ApprovedCalendarBridge.AnnualEnabled, ref __result);
+        }
 
-            VanillaFoodCadence.ScaleFinal(ref __result);
+        internal static void ApplyPolicy(ItemCategory category, bool annualEnabled, ref ExplainedNumber result)
+        {
+            if (annualEnabled && !UsesNativeCadence(category)) VanillaFoodCadence.ScaleFinal(ref result);
+        }
+
+        internal static bool UsesNativeCadence(ItemCategory category)
+        {
+            if (VanillaFoodCadence.IsFood(category)) return true;
+            if (category == null) return false;
+            // Exact audited category IDs; do not exempt all animals or all
+            // materials merely because one consumer happens to make food.
+            switch (category.StringId)
+            {
+                case "cow":
+                case "sheep":
+                case "hog":
+                case "wool":
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 
@@ -592,7 +1041,7 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         private static readonly MethodInfo Normalize = AccessTools.Method(
             typeof(TournamentStartFix), nameof(NormalizeWeekSlot));
 
-        private static int NormalizeWeekSlot(int week)
+        internal static int NormalizeWeekSlot(int week)
         {
             int slot = week % 3;
             return slot < 0 ? slot + 3 : slot;
@@ -660,8 +1109,17 @@ namespace AgesOfCalradia.Approved560CalendarFixes
         {
             if (!ApprovedCalendarBridge.AnnualEnabled)
                 return nativeDailyWage.ToString(CultureInfo.CurrentCulture);
-            return (nativeDailyWage * ApprovedCalendarBridge.Factor)
+            return EffectiveDailyWageForVerification(
+                    nativeDailyWage,
+                    ApprovedCalendarBridge.Factor)
                 .ToString("0.##", CultureInfo.CurrentCulture) + "/day";
+        }
+
+        internal static float EffectiveDailyWageForVerification(
+            float nativeDailyWage,
+            float factor)
+        {
+            return nativeDailyWage * factor;
         }
     }
 
@@ -720,7 +1178,9 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             float factor = ApprovedCalendarBridge.Factor;
             if (factor <= 0f || Math.Abs(factor - 1f) < 0.000001f) return;
 
-            float correctedResult = __result.ResultNumber / factor;
+            float correctedResult = CorrectDoubleScaledForVerification(
+                __result.ResultNumber,
+                factor);
             if (!__result.IncludeDescriptions)
             {
                 __result = new ExplainedNumber(correctedResult, false, null);
@@ -733,6 +1193,13 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             if (corrected.GetLines().Count == 0 && Math.Abs(correctedResult) > 0.0001f)
                 corrected.Add(correctedResult, new TextObject("{=AoCCalendarCadence}Calendar cadence"));
             __result = corrected;
+        }
+
+        internal static float CorrectDoubleScaledForVerification(
+            float doubleScaledResult,
+            float factor)
+        {
+            return doubleScaledResult / factor;
         }
     }
 
@@ -749,8 +1216,14 @@ namespace AgesOfCalradia.Approved560CalendarFixes
             DeclareWarDecision war = __result as DeclareWarDecision;
             if (war == null || war.FactionToDeclareWarOn == null) return;
             StanceLink stance = clan.Kingdom.GetStanceWith(war.FactionToDeclareWarOn);
-            if (stance.PeaceDeclarationDate.ElapsedDaysUntilNow <= GregorianTruceDays)
+            if (IsWithinTruceForVerification(
+                stance.PeaceDeclarationDate.ElapsedDaysUntilNow))
                 __result = null;
+        }
+
+        internal static bool IsWithinTruceForVerification(float elapsedCalendarDays)
+        {
+            return elapsedCalendarDays <= GregorianTruceDays;
         }
     }
 

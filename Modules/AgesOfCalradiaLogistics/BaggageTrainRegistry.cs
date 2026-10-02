@@ -40,5 +40,19 @@ namespace AgesOfCalradiaLogistics
         public Vec3 Position { get; private set; }
         public float Radius { get; private set; }
         public GameEntity Entity { get; private set; }
+        public bool IsCaptured { get; private set; }
+        public BattleSideEnum CapturingSide { get; private set; }
+
+        internal bool TryCapture(BattleSideEnum capturingSide)
+        {
+            if (IsCaptured)
+            {
+                return false;
+            }
+
+            IsCaptured = true;
+            CapturingSide = capturingSide;
+            return true;
+        }
     }
 }

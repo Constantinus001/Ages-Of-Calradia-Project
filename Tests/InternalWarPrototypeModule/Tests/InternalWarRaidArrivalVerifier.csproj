@@ -1,0 +1,17 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>InternalWarRaidArrivalVerifier</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\RaidArrival\$(Configuration)\</IntermediateOutputPath>
+    <WarningLevel>4</WarningLevel><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Compile Include="RaidArrivalProgram.cs" />
+    <Compile Include="..\InternalWarRaidArrivalPatch.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

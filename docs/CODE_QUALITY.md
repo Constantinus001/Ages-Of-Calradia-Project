@@ -145,6 +145,14 @@ Every code-writing task follows this sequence:
 
 At minimum, run:
 
+For the immutable approved Core, do **not** run the Core rebuild below: build
+only the changed sidecar in Release and run the two verification scripts against
+the approved artifacts. `Verify-CalendarMath.ps1` selects its hash-bound
+Protected560 contract automatically. Development schema-6 artifacts require the
+Development contract; see [BROAD_VERIFICATION_CONTRACTS.md](BROAD_VERIFICATION_CONTRACTS.md).
+The Core rebuild command applies only to separately authorized development work,
+never to replacing or rebuilding the protected political renderer.
+
 ```powershell
 dotnet msbuild TwelveMonthCalendar.csproj /t:Rebuild /p:Configuration=Release
 & .\Tests\Verify-CalendarMath.ps1
@@ -152,9 +160,26 @@ dotnet msbuild TwelveMonthCalendar.csproj /t:Rebuild /p:Configuration=Release
 ```
 
 Before publishing, run `Tests\Verify-Release.ps1` from a clean committed tree.
+For the two economy sidecars only, use `Verify-Release.ps1 -EconomySidecarsOnly`
+(optionally `-DeployEconomySidecars`). This mode creates a separate committed
+source snapshot, builds and verifies that snapshot, and packages exactly the
+calendar-fixes and diagnostics DLLs. It does not commit the user's working tree
+or rebuild/copy protected Core assets. Protected baseline checks remain mandatory,
+as do native coexistence tests, analyzer tests, exact hashes and the Defender
+scan/hold. The normal full-Core release gate is unchanged. A scoped PASS is not
+full-Core release certification or live economy validation. Evidence and rollback
+copies are retained under `%USERPROFILE%\AocRelease\<unique-run>`. Short paths
+avoid .NET Framework loading limits; avoiding AppData also prevents packaged-app
+redirection from giving Defender's service a different view of the scan path.
 If a DLL is locked by the game or another process, use an isolated output
 directory for compilation and report the environmental lock separately from
 source failures.
+
+For the Core Campaign Systems offline candidate, use
+`Tests/Verify-Release.ps1 -CampaignSystemsCandidateOnly`. This isolated snapshot
+route rejects bypasses and deployment, and requires at least a ten-minute security
+hold. It does not certify a public Nexus distribution; follow
+`docs/CAMPAIGN_SYSTEMS_NEXUS_RELEASE.md` for the additional publication requirements.
 
 Tests must verify observable contracts, not just that a symbol exists. When
 implementation and test expectations disagree, resolve the contract and then

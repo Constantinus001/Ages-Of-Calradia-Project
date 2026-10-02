@@ -11,7 +11,7 @@ namespace AgesOfCalradiaLogistics
         protected override void OnSubModuleLoad()
         {
             base.OnSubModuleLoad();
-            LogisticsDiagnostics.Info("Module loaded. Version=v0.2.0");
+            LogisticsDiagnostics.Info("Module loaded. Version=v0.3.0");
         }
 
         protected override void OnGameStart(Game game, IGameStarter gameStarterObject)
@@ -36,7 +36,10 @@ namespace AgesOfCalradiaLogistics
                     LogisticsDiagnostics.Info("Campaign speed model installed: base=4.0, maximum=8.0, native debuffs preserved.");
                 }
 
-                campaignStarter.AddBehavior(new LogisticsReserveBehavior());
+                LogisticsReserveBehavior reserveBehavior = new LogisticsReserveBehavior();
+                campaignStarter.AddBehavior(reserveBehavior);
+                campaignStarter.AddBehavior(new LogisticsMenuBehavior(reserveBehavior));
+                campaignStarter.AddBehavior(new LogisticsPlayerSupplyNotificationBehavior(reserveBehavior));
                 LogisticsDiagnostics.Info("Campaign reserve behaviour registered.");
             }
         }
@@ -53,6 +56,7 @@ namespace AgesOfCalradiaLogistics
                 mission.AddMissionBehavior(new BaggageTrainMissionBehavior());
                 mission.AddMissionBehavior(new BaggageResupplyMissionBehavior());
                 mission.AddMissionBehavior(new BaggageGuardMissionBehavior());
+                mission.AddMissionBehavior(new BaggageTrainRaidMissionBehavior());
                 LogisticsDiagnostics.Info("Baggage and resupply behaviours registered for mission initialization.");
             }
         }

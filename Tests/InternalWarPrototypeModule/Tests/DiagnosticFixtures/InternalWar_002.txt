@@ -1,0 +1,5 @@
+AOC INTERNAL WAR DIAGNOSTIC SNAPSHOT v1
+module.build_id=fixture-build-a
+snapshot.complete=True
+CHECK war.one.capture_owner|OBSERVED_OK|owner restored
+CHECK war.two.payment_receipt|OBSERVED_OK|receipt exists

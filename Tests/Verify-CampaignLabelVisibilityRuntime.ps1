@@ -10,12 +10,14 @@ $moduleBin = Join-Path $ModuleRoot 'bin\Win64_Shipping_Client'
 [Reflection.Assembly]::LoadFrom((Join-Path $moduleBin '0Harmony.dll')) | Out-Null
 foreach ($name in @(
     'TaleWorlds.Library.dll', 'TaleWorlds.DotNet.dll', 'TaleWorlds.Engine.dll',
+    'TaleWorlds.TwoDimension.dll', 'TaleWorlds.GauntletUI.dll',
     'TaleWorlds.Core.dll', 'TaleWorlds.Localization.dll', 'TaleWorlds.ObjectSystem.dll',
     'TaleWorlds.SaveSystem.dll', 'TaleWorlds.CampaignSystem.dll',
-    'TaleWorlds.MountAndBlade.dll')) {
+    'TaleWorlds.MountAndBlade.dll', 'TaleWorlds.MountAndBlade.GauntletUI.Widgets.dll')) {
     [Reflection.Assembly]::LoadFrom((Join-Path $gameBin $name)) | Out-Null
 }
 [Reflection.Assembly]::LoadFrom((Join-Path $BannerlordDir 'Modules\SandBox\bin\Win64_Shipping_Client\SandBox.ViewModelCollection.dll')) | Out-Null
+[Reflection.Assembly]::LoadFrom((Join-Path $BannerlordDir 'Modules\SandBox\bin\Win64_Shipping_Client\SandBox.View.dll')) | Out-Null
 
 $assembly = [Reflection.Assembly]::LoadFrom($AssemblyPath)
 $type = $assembly.GetType('AgesOfCalradia.CampaignLabelVisibility.CampaignLabelVisibilitySubModule', $true)
@@ -32,7 +34,7 @@ foreach ($original in [HarmonyLib.Harmony]::GetAllPatchedMethods()) {
     }
 }
 if ($targets.Count -ne 1 -or
-    $targets[0] -ne 'SandBox.ViewModelCollection.Nameplate.SettlementNameplateVM::UpdateNameplateMT') {
+    $targets -notcontains 'SandBox.ViewModelCollection.Nameplate.SettlementNameplateVM::UpdateNameplateMT') {
     throw "Unexpected campaign-map city-label targets: $($targets -join ', ')."
 }
-Write-Output 'PASS: campaign-map city-label Harmony binding resolved under .NET Framework.'
+Write-Output 'PASS: campaign-map overview town hiding resolved under .NET Framework; native map zoom limit is untouched.'

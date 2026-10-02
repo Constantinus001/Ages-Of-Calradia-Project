@@ -136,8 +136,8 @@ namespace AgesOfCalradia.MCM
             }
         }
 
-        [SettingPropertyFloatingInteger("Campaign Time Scale", 0.01f, 1.0f, "0.000", Order = 4,
-            RequireRestart = false, HintText = "Controls how quickly campaign time advances. Default is 0.150; lower values are slower.")]
+        [SettingPropertyFloatingInteger("Campaign Time Scale", CalendarSettingsState.MinimumCampaignTimeScale, CalendarSettingsState.MaximumCampaignTimeScale, "0.0000", Order = 4,
+            RequireRestart = false, HintText = "Controls how quickly campaign time advances. Automatic pacing targets about three real hours per calendar year.")]
         [SettingPropertyGroup("Economy")]
         public float CampaignTimeScale
         {
@@ -153,7 +153,7 @@ namespace AgesOfCalradia.MCM
         }
 
         [SettingPropertyBool("Automatic Campaign Time Scale", Order = 5, RequireRestart = false,
-            HintText = "Keeps campaign pacing at the fixed default of 0.150. Turning it off enables custom pacing.")]
+            HintText = "Keeps campaign pacing at about three real hours per calendar year. Turning it off enables custom pacing.")]
         [SettingPropertyGroup("Economy")]
         public bool AutoCampaignTimeScale
         {
@@ -187,7 +187,7 @@ namespace AgesOfCalradia.MCM
 
         [SettingPropertyFloatingInteger("Fast-Forward Speed Multiplier", 1f, 4f, "0", Order = 6,
             RequireRestart = false,
-            HintText = "Uses Bannerlord's built-in fast-forward speed. Normal map pace stays fixed. 4x is Bannerlord's supported maximum and avoids AI time-step skips.")]
+            HintText = "Uses Bannerlord's built-in fast-forward speed. Automatic fast-forward targets about ninety real minutes per calendar year.")]
         [SettingPropertyGroup("Pacing")]
         public float FastForwardTimeMultiplier
         {

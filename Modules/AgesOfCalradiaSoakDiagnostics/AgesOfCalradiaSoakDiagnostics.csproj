@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C1D6231C-48D7-4E4F-B1D3-68B3D529BE20}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>AgesOfCalradia.SoakDiagnostics</RootNamespace>
+    <AssemblyName>AgesOfCalradia.SoakDiagnostics</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Deterministic>true</Deterministic>
+    <BannerlordDir Condition=" '$(BannerlordDir)' == '' ">C:\Program Files\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordDir>
+    <OutputPath>bin\Win64_Shipping_Client\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="0Harmony"><HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Localization"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Localization.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.DotNet"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.CampaignSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Core"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Engine"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.Library"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.Library.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.MountAndBlade"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="TaleWorlds.ObjectSystem"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.ObjectSystem.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AgesOfCalradiaSoakDiagnosticsSubModule.cs" />
+    <Compile Include="CalendarSoakBehavior.cs" />
+    <Compile Include="SoakLog.cs" />
+    <Compile Include="PacingCalibration.cs" />
+    <Compile Include="SoakReloadReceipt.cs" />
+    <Compile Include="PeaceEventHistory.cs" />
+    <Compile Include="PeaceEventDiagnostics.cs" />
+    <Compile Include="EconomyLedger.cs" />
+    <Compile Include="EconomyObjectIdentity.cs" />
+    <Compile Include="EconomyDailySummary.cs" />
+    <Compile Include="EconomyRecipeDiagnostics.cs" />
+    <Compile Include="EconomyStateDiagnostics.cs" />
+    <Compile Include="EconomyFlowDiagnostics.cs" />
+    <Compile Include="EconomyCallerDiagnostics.cs" />
+    <Compile Include="SupplyCapture.cs" />
+    <Compile Include="IncidentRecorder.cs" />
+    <Compile Include="WalletIncidentHistory.cs" />
+    <Compile Include="MoneyPurposeObserver.cs" />
+    <Compile Include="NavalCashoutObserver.cs" />
+    <Compile Include="NavalSaleObserver.cs" />
+    <Compile Include="FrameworkRuntimeSummary.cs" />
+    <Compile Include="RollingLogStore.cs" />
+    <Compile Include="SupplyCategories.cs" />
+    <Compile Include="SupplyCaravanObserver.cs" />
+    <Compile Include="SupplyCashObserver.cs" />
+    <Compile Include="CashPurposeContext.cs" />
+    <Compile Include="SupplyRewardObserver.cs" />
+    <Compile Include="SupplyBattleAllocationObserver.cs" />
+    <Compile Include="SupplyShipLifecycleObserver.cs" />
+    <Compile Include="QuestLifecycleObserver.cs" />
+    <Compile Include="LogisticsLifecycleObserver.cs" />
+    <Compile Include="CaptureReadiness.cs" />
+    <Compile Include="SupplyChainObserver.cs" />
+    <Compile Include="SupplyValueTaps.cs" />
+    <Compile Include="SupplyWorkshopObserver.cs" />
+    <Compile Include="ProcurementObservation.cs" />
+    <Compile Include="CampaignSystemsObservation.cs" />
+    <Compile Include="SupplyMarketObserver.cs" />
+    <Compile Include="SupplyTownCashObserver.cs" />
+    <Compile Include="DiagnosticEventCoverage.cs" />
+    <Compile Include="DiagnosticObserverCost.cs" />
+    <Compile Include="SupplyWoolSaleObserver.cs" />
+    <Compile Include="EconomyStateHistory.cs" />
+    <Compile Include="EconomyHealthDiagnostics.cs" />
+    <Compile Include="TreatyStateDiagnostics.cs" />
+    <Compile Include="EconomyWarehouseDiagnostics.cs" />
+    <Compile Include="EconomyTransactionDiagnostics.cs" />
+    <Compile Include="EconomyDiagnosticPatches.cs" />
+    <None Include="SubModule.xml" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

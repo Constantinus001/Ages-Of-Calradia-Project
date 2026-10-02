@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -18,8 +19,8 @@ namespace AgesOfCalradiaLogistics
     {
         private const int SupplyRadiusMeters = 6;
         private const float RearDeploymentDistanceMeters = 20f;
-        private const int WagonCount = 12;
-        private const int GroundSupplyPileCount = 8;
+        private const int MinimumWagonCount = 2;
+        private const int MaximumWagonCount = 6;
         private const float WagonSpacingMeters = 12f;
         private const float WagonRowDepthMeters = 7f;
         private const string GroundSupplyPrefabName = "caravan_scattered_goods_prop";
@@ -52,8 +53,8 @@ namespace AgesOfCalradiaLogistics
                 return;
             }
 
-            SpawnForSide(battle, BattleSideEnum.Attacker);
-            SpawnForSide(battle, BattleSideEnum.Defender);
+            TrySpawnForSide(battle, BattleSideEnum.Attacker);
+            TrySpawnForSide(battle, BattleSideEnum.Defender);
         }
 
         public override void OnBehaviorInitialize()
@@ -62,7 +63,24 @@ namespace AgesOfCalradiaLogistics
             BaggageTrainRegistry.Clear();
         }
 
-        private void SpawnForSide(MapEvent battle, BattleSideEnum side)
+        private void TrySpawnForSide(MapEvent battle, BattleSideEnum side)
+        {
+            try
+            {
+                SpawnForSideCore(battle, side);
+            }
+            catch (Exception exception)
+            {
+                // Native scene/prefab loading is version-sensitive. A failed
+                // visual train leaves the battle playable with no registry
+                // entry, and therefore no resupply or guard order for that side.
+                LogisticsDiagnostics.Error(
+                    "Skipped baggage train for " + side + " after native scene/prefab failure.",
+                    exception);
+            }
+        }
+
+        private void SpawnForSideCore(MapEvent battle, BattleSideEnum side)
         {
             if (!SideHasEligibleParty(battle, side))
             {
@@ -71,6 +89,9 @@ namespace AgesOfCalradiaLogistics
             }
 
             int troopCount = battle.PartiesOnSide(side).Sum(mapParty => mapParty.Party.NumberOfHealthyMembers);
+            int reserve = CalculateSideReserve(battle, side);
+            int wagonCount = CalculateWagonCount(troopCount, reserve);
+            int groundSupplyPileCount = Math.Max(1, wagonCount / 2);
             float pathOffset = Mission.ComputeSpawnPathDeploymentOffset(
                 (int)(troopCount * 1.5f),
                 Mission.GetInitialSpawnPath());
@@ -93,11 +114,12 @@ namespace AgesOfCalradiaLogistics
             Mission.Scene.GetTerrainHeightAndNormal(groundPosition.AsVec2, out float terrainHeight, out Vec3 terrainNormal);
             groundPosition.z = terrainHeight;
             GameEntity train = null;
-            for (int wagonIndex = 0; wagonIndex < WagonCount; wagonIndex++)
+            for (int wagonIndex = 0; wagonIndex < wagonCount; wagonIndex++)
             {
                 float seed = (wagonIndex + 1) * 17f + (side == BattleSideEnum.Attacker ? 3f : 11f);
                 int column = wagonIndex / 2;
-                float lineOffset = (column - 2.5f) * WagonSpacingMeters;
+                float centeredColumn = column - ((wagonCount / 2 - 1) / 2f);
+                float lineOffset = centeredColumn * WagonSpacingMeters;
                 float rowDepth = (wagonIndex % 2 == 0 ? -WagonRowDepthMeters : WagonRowDepthMeters);
                 float depthJitter = (seed % 5f - 2f) * 0.7f;
                 Vec3 wagonPosition = groundPosition + frame.Rotation.s * lineOffset + frame.Rotation.f * (rowDepth + depthJitter);
@@ -109,10 +131,10 @@ namespace AgesOfCalradiaLogistics
                 string wagonPrefab = IntactWagonPrefabNames[
                     (wagonIndex + (side == BattleSideEnum.Attacker ? 0 : 3)) % IntactWagonPrefabNames.Length];
                 GameEntity wagon = GameEntity.Instantiate(Mission.Scene, wagonPrefab, wagonFrame);
-                if (wagonIndex == WagonCount / 2) train = wagon;
+                if (wagonIndex == wagonCount / 2) train = wagon;
             }
 
-            for (int pileIndex = 0; pileIndex < GroundSupplyPileCount; pileIndex++)
+            for (int pileIndex = 0; pileIndex < groundSupplyPileCount; pileIndex++)
             {
                 float seed = (pileIndex + 1) * 23f + (side == BattleSideEnum.Attacker ? 7f : 13f);
                 float lateralOffset = (seed % 67f) - 33f;
@@ -136,11 +158,12 @@ namespace AgesOfCalradiaLogistics
 
             BaggageTrainRegistry.Register(side, groundPosition, SupplyRadiusMeters, train);
             LogisticsDiagnostics.Info(string.Format(
-                "Spawned forced {0}-wagon, {1}-pile mixed {2} baggage convoy {3:F0}m behind deployment at ({4:F1}, {5:F1}, {6:F1}), radius={7}m.",
-                WagonCount,
-                GroundSupplyPileCount,
+                "Spawned {0}-wagon, {1}-pile {2} baggage convoy for {3} troops and {4} reserve at ({5:F1}, {6:F1}, {7:F1}), radius={8}m.",
+                wagonCount,
+                groundSupplyPileCount,
                 side,
-                RearDeploymentDistanceMeters,
+                troopCount,
+                reserve,
                 groundPosition.x,
                 groundPosition.y,
                 groundPosition.z,
@@ -152,6 +175,26 @@ namespace AgesOfCalradiaLogistics
             return battle.PartiesOnSide(side).Any(mapParty =>
                 mapParty.Party != null &&
                 LogisticsReserveBehavior.IsEligible(mapParty.Party.MobileParty));
+        }
+
+        private static int CalculateSideReserve(MapEvent battle, BattleSideEnum side)
+        {
+            LogisticsReserveBehavior reserves = LogisticsReserveBehavior.Active;
+            if (reserves == null)
+            {
+                return 0;
+            }
+
+            return battle.PartiesOnSide(side)
+                .Where(mapParty => mapParty.Party != null
+                    && LogisticsReserveBehavior.IsEligible(mapParty.Party.MobileParty))
+                .Sum(mapParty => reserves.GetReserve(mapParty.Party.MobileParty));
+        }
+
+        private static int CalculateWagonCount(int troopCount, int reserve)
+        {
+            int scale = Math.Max(troopCount / 100, reserve / 25);
+            return Math.Max(MinimumWagonCount, Math.Min(MaximumWagonCount, MinimumWagonCount + scale));
         }
 
     }

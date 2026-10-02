@@ -5,6 +5,10 @@ design_foreground_marriage_v1.png
 design_foreground_story_v1.png
 design_foreground_summaries_v1.png
 foreground_diplomacy.png
+gold_frame_calendar_v4_matte.png
+gold_frame_diplomacy_v4_matte.png
+gold_frame_map_v4_matte.png
+gold_frame_story_v4_matte.png
 page_cabinet_archive_row_v1.png
 page_cabinet_calendar_v2.png
 page_cabinet_companions_v1.png
@@ -17,3 +21,4 @@ page_cabinet_treasury_v1.png
 page_cabinet_war_statistics_v1.png
 tab_sub_inactive_outline_332x56_v1.png
 tab_sub_selected_gold_332x56_v1.png
+world_events_four_tabs_shell_buttonless_v7_full_bottom_eagle.png

@@ -40,10 +40,11 @@
     <Reference Include="TaleWorlds.DotNet"><HintPath>$(BannerlordDir)\bin\Win64_Shipping_Client\TaleWorlds.DotNet.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="LogisticsSubModule.cs" /><Compile Include="LogisticsPartySpeedModel.cs" /><Compile Include="LogisticsDiagnostics.cs" /><Compile Include="LogisticsReserveBehavior.cs" /><Compile Include="BaggageTrainMissionBehavior.cs" /><Compile Include="BaggageTrainRegistry.cs" /><Compile Include="BaggageResupplyMissionBehavior.cs" /><Compile Include="BaggageGuardMissionBehavior.cs" />
+    <Compile Include="LogisticsSubModule.cs" /><Compile Include="LogisticsSupplyMath.cs" /><Compile Include="LogisticsSupplyMarketService.cs" /><Compile Include="LogisticsAiProcurementService.cs" /><Compile Include="LogisticsMenuBehavior.cs" /><Compile Include="LogisticsPlayerSupplyNotificationBehavior.cs" /><Compile Include="LogisticsPartySpeedModel.cs" /><Compile Include="LogisticsDiagnostics.cs" /><Compile Include="LogisticsReserveBehavior.cs" /><Compile Include="BaggageTrainMissionBehavior.cs" /><Compile Include="BaggageTrainRegistry.cs" /><Compile Include="BaggageResupplyMissionBehavior.cs" /><Compile Include="BaggageGuardMissionBehavior.cs" /><Compile Include="BaggageTrainRaidMissionBehavior.cs" />
+    <Compile Include="CampaignSystemsApi.cs" />
     <None Include="SubModule.xml" /><None Include="README.md" />
     <None Include="ModuleData\supply_items.xml" /><None Include="ModuleData\module_strings.xml" />
-    <None Include="Tests\Verify-SupplyItem.ps1" />
+    <None Include="Tests\Verify-SupplyItem.ps1" /><None Include="Tests\LogisticsSupplyMathVerifier.csproj" /><None Include="Tests\LogisticsSupplyMathVerifier.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

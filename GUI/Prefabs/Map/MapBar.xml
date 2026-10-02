@@ -108,15 +108,16 @@
 
         <!-- Wider native-textured bar beneath the center panel.  The center
              panel renders late and masks the middle, leaving two integrated
-             extensions for the custom shortcuts. -->
-        <Widget DataSource="{MapTimeControl}" Id="ExpandedMapBarUnderlay" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="590" SuggestedHeight="60" HorizontalAlignment="Center" PositionXOffset="10" PositionYOffset="10" VerticalAlignment="Bottom" Sprite="MapBar\mapbar_center_frame" IsVisible="@IsCenterPanelEnabled">
+             extensions for the custom shortcuts. Height 90 with offset 0 keeps
+             the top at -90 while extending both wings to the screen bottom. -->
+        <Widget DataSource="{MapTimeControl}" Id="ExpandedMapBarUnderlay" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="885" SuggestedHeight="90" HorizontalAlignment="Center" PositionXOffset="0" PositionYOffset="0" VerticalAlignment="Bottom" Sprite="MapBar\mapbar_center_frame" IsVisible="@IsCenterPanelEnabled">
           <Children>
-            <ButtonWidget Id="CampButton" DoNotPassEventsToChildren="true" UpdateChildrenStates="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="34" SuggestedHeight="31" HorizontalAlignment="Left" VerticalAlignment="Bottom" PositionXOffset="70" PositionYOffset="-12" Brush="SPOptions.Checkbox.Empty.Button" Command.Click="ExecuteOpenCamp" GamepadNavigationIndex="5" IsVisible="@IsRefugeSystemEnabled">
+            <ButtonWidget Id="CampButton" DoNotPassEventsToChildren="true" UpdateChildrenStates="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="47" SuggestedHeight="43" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="14" PositionYOffset="17" Brush="SPOptions.Checkbox.Empty.Button" Command.Click="ExecuteOpenCamp" GamepadNavigationIndex="5" IsVisible="@IsRefugeSystemEnabled">
               <Children>
                 <TextWidget DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" VerticalAlignment="Center" Brush="MapTextBrushGal" Brush.FontSize="20" Brush.FontColor="#FFF2D0FF" Brush.TextHorizontalAlignment="Center" Text="C" />
               </Children>
             </ButtonWidget>
-            <ButtonWidget Id="WorldCalendarButton" DoNotPassEventsToChildren="true" UpdateChildrenStates="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="34" SuggestedHeight="31" HorizontalAlignment="Right" VerticalAlignment="Bottom" PositionXOffset="-70" PositionYOffset="-12" Brush="SPOptions.Checkbox.Empty.Button" Command.Click="ExecuteToggleWorldCalendar" GamepadNavigationIndex="4">
+            <ButtonWidget Id="WorldCalendarButton" DoNotPassEventsToChildren="true" UpdateChildrenStates="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="47" SuggestedHeight="43" HorizontalAlignment="Right" VerticalAlignment="Top" PositionXOffset="-108" PositionYOffset="33" Brush="SPOptions.Checkbox.Empty.Button" Command.Click="ExecuteToggleWorldCalendar" GamepadNavigationIndex="5">
               <Children>
                 <TextWidget DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" VerticalAlignment="Center" Brush="MapTextBrushGal" Brush.FontSize="20" Brush.FontColor="#FFF2D0FF" Brush.TextHorizontalAlignment="Center" Text="W" />
               </Children>
@@ -124,39 +125,48 @@
           </Children>
         </Widget>
 
+        <TextureWidget Id="NotchBackingPatch" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="60" SuggestedHeight="66" HorizontalAlignment="Center" PositionXOffset="0" PositionYOffset="-15" VerticalAlignment="Bottom" TextureProviderName="AocMapBarNotchBackingTextureProvider" IsVisible="@IsCenterPanelEnabled" />
+
         <!--_____Center Panel_______-->
-        <MapCurrentTimeVisualWidget DataSource="{MapTimeControl}" Id="CenterPanel" VisualDefinition="CenterPanel" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="420" SuggestedHeight="60" HorizontalAlignment="Center" PositionXOffset="10" VerticalAlignment="Bottom" Sprite="MapBar\mapbar_center_frame" CurrentTimeState="@TimeFlowState" FastForwardButton="FastForwardButton" IsEnabled="@IsCenterPanelEnabled" PauseButton="PauseButton" PlayButton="PlayButton" RenderLate="true">
+        <MapCurrentTimeVisualWidget DataSource="{MapTimeControl}" Id="CenterPanel" DoNotAcceptEvents="true" VisualDefinition="CenterPanel" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="588" SuggestedHeight="97" HorizontalAlignment="Center" PositionXOffset="0" PositionYOffset="-2" VerticalAlignment="Bottom" Sprite="MapBar\mapbar_center_frame" CurrentTimeState="@TimeFlowState" FastForwardButton="FastForwardButton" IsEnabled="@IsCenterPanelEnabled" PauseButton="PauseButton" PlayButton="PlayButton" RenderLate="true">
           <Children>
             <NavigationScopeTargeter ScopeID="MapBarCenterPanelScope" ScopeParent="..\." ScopeMovements="Horizontal" NavigateFromScopeEdges="true" LeftNavigationScope="MapNavigationScope" RightNavigationScope="MapBarRightPanelTopInfoBarScope" IsScopeEnabled="@IsCenterPanelEnabled" />
 
-            <!-- Two-line calendar block: long month and season names remain
-                 left of the sundial while the clock occupies the old season slot. -->
-            <TextWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="150" SuggestedHeight="24" HorizontalAlignment="Left" PositionXOffset="40" VerticalAlignment="Center" PositionYOffset="-6" Brush="MapTextBrushGal" Brush.FontSize="18" Brush.FontColor="#FFF2D0FF" Brush.TextHorizontalAlignment="Center" Text="@CalendarDateLine" />
-            <TextWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="150" SuggestedHeight="20" HorizontalAlignment="Left" PositionXOffset="40" VerticalAlignment="Center" PositionYOffset="12" Brush="MapTextBrushGal" Brush.FontSize="18" Brush.FontColor="#FFF2D0FF" Brush.TextHorizontalAlignment="Center" Text="@SeasonYearLine" />
-            <TextWidget Id="CalendarClockText" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="70" SuggestedHeight="36" HorizontalAlignment="Center" PositionXOffset="47" VerticalAlignment="Center" PositionYOffset="0" Brush="MapTextBrushGal" Brush.FontSize="14" Brush.FontColor="#FFF2D0FF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="@TimeOfDay" />
+            <TextureWidget Id="SeasonCrown" DoNotAcceptEvents="false" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="162" SuggestedHeight="93" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="214" PositionYOffset="-60" TextureProviderName="AocMapBarSeasonCrownTextureProvider" />
 
-
-            <ButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="78" SuggestedHeight="79" HorizontalAlignment="Center" PositionYOffset="-8" VerticalAlignment="Center" Command.Click="ExecuteResetCamera" UpdateChildrenStates="true" >
+            <ButtonWidget Id="MapTimeDialButton" DoNotPassEventsToChildren="true" UpdateChildrenStates="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="108" SuggestedHeight="108" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="241" PositionYOffset="-34" Command.Click="ExecuteResetCamera">
               <Children>
-                <MapTimeImageBrushWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="78" SuggestedHeight="50" HorizontalAlignment="Left" VerticalAlignment="Center" Brush="MapTimeImage" CircularClipEnabled="true" CircularClipRadius="29" DayTime="@Time" />
-                <BrushWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="75" SuggestedHeight="75" HorizontalAlignment="Center" VerticalAlignment="Center" Brush="MapBar.Center.Button" GamepadNavigationIndex="0" />
-                <HintWidget DataSource="{TimeOfDayHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
+                <MapTimeImageBrushWidget Id="VanillaDayNightDisc" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="131.04" SuggestedHeight="84" HorizontalAlignment="Center" VerticalAlignment="Center" Brush="AocMapTimeImageLarge" CircularClipEnabled="true" CircularClipRadius="42" DayTime="@Time" />
+                <TextureWidget Id="MapTimeDialFrame" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="108" SuggestedHeight="108" HorizontalAlignment="Center" VerticalAlignment="Center" TextureProviderName="AocMapBarMedallionRimTextureProvider" />
               </Children>
             </ButtonWidget>
 
-<ButtonWidget Id="FastForwardButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="27" SuggestedHeight="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" PositionXOffset="-42" PositionYOffset="-13" Brush="MapBarFastForwardButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="2" GamepadNavigationIndex="3">
+            <AocMapBarSeasonPointerWidget Id="SeasonPointer" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="14" SuggestedHeight="14" HorizontalAlignment="Left" VerticalAlignment="Top" DoNotAcceptEvents="false" CenterX="295" CenterY="20" TextureProviderName="AocMapBarSeasonArrowTextureProvider" />
+            <TextWidget Id="CalendarDateText" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="110" SuggestedHeight="32" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="104" PositionYOffset="27" Brush="MapTextBrushGal" Brush.FontSize="24" Brush.FontColor="#F4C35AFF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="@CalendarDateLine" />
+            <MapYearTextWidget Id="CalendarYearText" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="110" SuggestedHeight="29" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="104" PositionYOffset="56" Brush="MapTextBrushGal" Brush.FontSize="24" Brush.FontColor="#AEC5D4FF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" SourceText="@SeasonYearLine" />
+            <CompactMapClockTextWidget Id="CalendarClockText" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="105" SuggestedHeight="23" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="242.5" PositionYOffset="67.75" Brush="MapTextBrushGal" Brush.FontSize="19" Brush.FontColor="#F4C35AFF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" ClockSourceText="@TimeOfDay" />
+
+            <ButtonWidget Id="FastForwardButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="40" SuggestedHeight="33" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="424" PositionYOffset="38" Brush="MapBarFastForwardButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="2" GamepadNavigationIndex="3">
               <Children>
                 <HintWidget DataSource="{FastForwardHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsDisabled="true" />
               </Children>
             </ButtonWidget>
 
-<ButtonWidget Id="PlayButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="20" SuggestedHeight="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" PositionXOffset="-79" PositionYOffset="-13" Brush="MapBarPlayButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="1" GamepadNavigationIndex="2">
+            <!-- Separate 35px hitbox: AOC supplies the Super Fast Forward [4]
+                 tooltip and keyboard action without borrowing the 2x hint. -->
+            <ButtonWidget Id="FastForward4xButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="53" SuggestedHeight="33" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="474" PositionYOffset="38" Brush="MapBarFastForwardButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="2" GamepadNavigationIndex="4">
+              <Children>
+                <HintWidget DataSource="{FastForwardHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="PlayButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="28" SuggestedHeight="33" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="386" PositionYOffset="38" Brush="MapBarPlayButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="1" GamepadNavigationIndex="2">
               <Children>
                 <HintWidget DataSource="{PlayHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsDisabled="true" />
               </Children>
             </ButtonWidget>
 
-            <ButtonWidget Id="PauseButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="18" SuggestedHeight="23" HorizontalAlignment="Right" VerticalAlignment="Bottom" PositionXOffset="-109" PositionYOffset="-13" Brush="MapBarPauseButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="0" GamepadNavigationIndex="1">
+            <ButtonWidget Id="PauseButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="25" SuggestedHeight="32" HorizontalAlignment="Left" VerticalAlignment="Top" PositionXOffset="351" PositionYOffset="38" Brush="MapBarPauseButton" Command.Click="ExecuteTimeControlChange" CommandParameter.Click="0" GamepadNavigationIndex="1">
               <Children>
                 <HintWidget DataSource="{PauseHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsDisabled="true" />
               </Children>

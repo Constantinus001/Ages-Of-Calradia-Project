@@ -35,11 +35,12 @@ function Copy-TreeContents([string]$Source, [string]$Destination) {
 $religionsRoot = Join-Path $modulesRoot 'AgesOfCalradiaReligions'
 $successionRoot = Join-Path $modulesRoot 'AgesOfCalradiaSuccession'
 Invoke-FeatureBuild (Join-Path $religionsRoot 'AgesOfCalradiaReligions.csproj') @("/p:CoreModuleDirectory=$repositoryRoot")
+Invoke-FeatureBuild (Join-Path $religionsRoot 'Shipwright\AgesOfCalradiaReligions.Shipwright.csproj')
 Invoke-FeatureBuild (Join-Path $successionRoot 'AgesOfCalradiaSuccession.csproj') @(
     "/p:ReligionsAssemblyPath=$(Join-Path $binaryRoot 'AgesOfCalradiaReligions.dll')"
 )
 
-foreach ($dll in @('AgesOfCalradiaReligions.dll', 'AgesOfCalradiaSuccession.dll')) {
+foreach ($dll in @('AgesOfCalradiaReligions.dll', 'AgesOfCalradiaReligions.Shipwright.dll', 'AgesOfCalradiaSuccession.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $binaryRoot $dll) -PathType Leaf)) { throw "R & S assembly is missing: $dll" }
 }
 Get-ChildItem -LiteralPath $binaryRoot -Filter '*.pdb' -File | Remove-Item -Force

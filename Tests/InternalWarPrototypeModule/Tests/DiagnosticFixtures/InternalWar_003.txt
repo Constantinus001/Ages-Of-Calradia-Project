@@ -1,0 +1,5 @@
+AOC INTERNAL WAR DIAGNOSTIC SNAPSHOT v1
+module.build_id=fixture-build-b
+snapshot.complete=False
+CHECK war.one.capture_owner|OBSERVED_OK|another build
+CHECK invalid-data

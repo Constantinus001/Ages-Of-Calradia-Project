@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Module>
+  <Name value="Ages of Calradia Soak Diagnostics" />
+  <Id value="AgesOfCalradiaSoakDiagnostics" />
+  <Version value="v0.1.0" />
+  <DefaultModule value="false" />
+  <Official value="false" />
+  <SingleplayerModule value="true" />
+  <DependedModules>
+    <DependedModule Id="Bannerlord.Harmony" />
+    <DependedModule Id="Native" />
+    <DependedModule Id="SandBoxCore" />
+    <DependedModule Id="Sandbox" />
+    <DependedModule Id="AgesOfCalradia" />
+  </DependedModules>
+  <SubModules>
+    <SubModule>
+      <Name value="Ages of Calradia Soak Diagnostics" />
+      <DLLName value="AgesOfCalradia.SoakDiagnostics.dll" />
+      <SubModuleClassType value="AgesOfCalradia.SoakDiagnostics.AgesOfCalradiaSoakDiagnosticsSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+      </Tags>
+    </SubModule>
+  </SubModules>
+</Module>

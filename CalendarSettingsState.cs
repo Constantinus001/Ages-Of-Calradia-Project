@@ -27,11 +27,12 @@ namespace TwelveMonthCalendar
         private const bool DefaultUseOrdinalDaySuffixes = true;
         private const bool DefaultUse24HourClock = true;
         internal const int DefaultNativeDaysInYear = 84;
-        // A 0.15 scale gives roughly 2.7 campaign hours per real minute, or
-        // about 8.9 real minutes per campaign day. This is intentionally
-        // slower than the previous 0.23 default so the map clock is easier to
-        // follow during normal play.
-        public const float DefaultCampaignTimeScale = 0.15f;
+        // Normal play targets about three real hours per 365-day calendar
+        // year. The paired 2x fast-forward target is about ninety minutes.
+        public const float DefaultCampaignTimeScale = 0.803f;
+        public const float MinimumCampaignTimeScale = 0.001f;
+        internal const float PreviousAutomaticCampaignTimeScale = 0.15f;
+        public const float MaximumCampaignTimeScale = 2.0f;
         // Visual lighting follows these hours only when the optional clock-
         // synchronized atmosphere mode is enabled. Native sunrise/sunset
         // remain untouched for gameplay mechanics and compatibility.
@@ -58,11 +59,10 @@ namespace TwelveMonthCalendar
         internal const float DefaultRenownGainMultiplier = 0.5f;
         internal const float DefaultLordDeathRateMultiplier = 0.20f;
         internal const float DefaultNormalPlayTimeMultiplier = 1f;
-        // Bannerlord initializes Campaign.SpeedUpMultiplier to 4. The engine
-        // is calibrated for its native 4x fast-forward. Higher injected
-        // values can skip AI and pathing simulation work.
-        // rather than stacking a second TickMapTime multiplier.
-        internal const float DefaultFastForwardTimeMultiplier = 4f;
+        // Fast-forward stays within Bannerlord's supported native range and
+        // pairs with the automatic scale for a ninety-minute calendar year.
+        internal const float DefaultFastForwardTimeMultiplier = 2f;
+        internal const float PreviousAutomaticFastForwardTimeMultiplier = 4f;
         internal const float MinimumPacingMultiplier = 1f;
         internal const float MaximumPacingMultiplier = 4f;
         private const int MaximumConfiguredMonthLength = 1000;
@@ -799,7 +799,7 @@ namespace TwelveMonthCalendar
                 float normalizedCampaignTimeScale = requestedAutoCampaignTimeScale
                     ? DefaultCampaignTimeScale
                     : IsFinite(campaignTimeScale)
-                        ? Math.Max(0.01f, Math.Min(1.0f, campaignTimeScale))
+                        ? Math.Max(MinimumCampaignTimeScale, Math.Min(MaximumCampaignTimeScale, campaignTimeScale))
                         : DefaultCampaignTimeScale;
                 _campaignTimeScale = normalizedCampaignTimeScale;
                 // Fast-forward is intentionally runtime-safe. Campaign.TickMapTime
@@ -1023,7 +1023,7 @@ namespace TwelveMonthCalendar
                 _autoCampaignTimeScale = profile.AutoCampaignTimeScale;
                 _campaignTimeScale = _autoCampaignTimeScale
                     ? DefaultCampaignTimeScale
-                    : Math.Max(0.01f, Math.Min(1f, profile.CampaignTimeScale));
+                    : Math.Max(MinimumCampaignTimeScale, Math.Min(MaximumCampaignTimeScale, profile.CampaignTimeScale));
                 _fastForwardTimeMultiplier = NormalizePacingMultiplier(
                     profile.FastForwardTimeMultiplier,
                     DefaultFastForwardTimeMultiplier);

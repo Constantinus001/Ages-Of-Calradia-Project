@@ -5,6 +5,25 @@ The standalone religion-systems module for Ages of Calradia.
 It loads after the core **Ages of Calradia** module. It does not own or alter
 the calendar; weekday and month content remains in the core module.
 
+## Optional War Sails shipwright v0.10.0
+
+- Packages the port ship builder as a second assembly,
+  `AgesOfCalradiaReligions.Shipwright.dll`, inside this module.
+- Adds **Commission a custom Dromon** at port towns when War Sails v1.2.8 is
+  active and its audited native contract is available.
+- Uses the native War Sails Trade-mode port screen for upgrades, naming,
+  pricing, payment, confirmation, cancellation, and fleet ownership.
+- Creates the native `PortState` through `GameStateManager` and temporarily
+  attaches the candidate to the port roster, matching Trade mode's actual
+  runtime invariants. Cancellation and launch failure detach the candidate.
+- Adds a nine-step commissioning wizard: Fore, Aft, Bow, Hull, Side, Deck,
+  Sail, Roof, and Name. Each part list comes from War Sails' own current-port
+  merchandise filter, preserving shipyard level and culture restrictions.
+- Fits the selected pieces to a transient vanilla Dromon, then opens the native
+  3D port screen for final visual inspection, price calculation, and purchase.
+- Keeps War Sails optional. Without NavalDLC data, the separate sidecar safely
+  hides its menu option and the religion and population systems continue.
+
 ## Character religion v0.9.0
 
 - Gives every living hero a saved current faith, birth faith, conversion count,

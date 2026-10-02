@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Brushes>
+  <!-- Native animation stays circular; the transparent oval rim supplies perspective occlusion. -->
+  <Brush Name="AocMapTimeImageLarge">
+    <Layers>
+      <BrushLayer Name="Default" Sprite="MapBar\mapbar_center_circle_daynight" Color="#FFFFFFFF" WidthPolicy="Overriden" HeightPolicy="Overriden" OverridenWidth="295.68" OverridenHeight="84" />
+      <BrushLayer Name="Part2" Sprite="MapBar\mapbar_center_circle_daynight" Color="#FFFFFFFF" WidthPolicy="Overriden" HeightPolicy="Overriden" OverridenWidth="295.68" OverridenHeight="84" XOffset="25.2" />
+    </Layers>
+    <Styles>
+      <Style Name="Default" />
+    </Styles>
+  </Brush>
+</Brushes>

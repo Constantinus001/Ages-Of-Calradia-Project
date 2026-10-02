@@ -6,7 +6,7 @@ $project = Get-Content -LiteralPath (Join-Path $moduleRoot 'AgesOfCalradiaReligi
 $submodule = Get-Content -LiteralPath (Join-Path $moduleRoot 'ReligionSubModule.cs') -Raw
 $manifest = [xml](Get-Content -LiteralPath (Join-Path $moduleRoot 'SubModule.xml') -Raw)
 
-if ($manifest.Module.Version.value -ne 'v0.9.3') { throw 'Unexpected religion map-text version.' }
+if ($manifest.Module.Version.value -ne 'v0.10.0') { throw 'Unexpected religion map-text and Shipwright version.' }
 if ($project -notmatch 'MapOverlayTextColorIntegration.cs') { throw 'Map-text integration is not compiled.' }
 if ($submodule -notmatch 'MapOverlayTextColorIntegration.Install' -or $submodule -notmatch 'MapOverlayTextColorIntegration.Reset') {
     throw 'Map-text integration lifecycle is incomplete.'

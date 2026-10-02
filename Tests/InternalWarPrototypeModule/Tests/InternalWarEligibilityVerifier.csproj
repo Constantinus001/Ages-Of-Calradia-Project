@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>InternalWarEligibilityVerifier</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\Eligibility\$(Configuration)\</IntermediateOutputPath>
+    <Deterministic>true</Deterministic>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="0Harmony">
+      <HintPath>$(UserProfile)\.nuget\packages\lib.harmony\2.4.2\lib\net472\0Harmony.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Compile Include="EligibilityProgram.cs" />
+    <Compile Include="CombatPolicyTests.cs" />
+    <Compile Include="..\InternalWarCombatService.cs" />
+    <Compile Include="..\InternalConflictRecord.cs" />
+    <Compile Include="..\InternalWarConflictRegistry.cs" />
+    <Compile Include="EligibilityGameStubs.cs" />
+    <Compile Include="..\InternalWarTestService.cs"><Link>InternalWarTestService.cs</Link></Compile>
+    <Compile Include="..\InternalWarTestRecord.cs"><Link>InternalWarTestRecord.cs</Link></Compile>
+    <Compile Include="..\InternalWarTestEncounterPatch.cs"><Link>InternalWarTestEncounterPatch.cs</Link></Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

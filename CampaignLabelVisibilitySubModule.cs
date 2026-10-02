@@ -30,9 +30,14 @@ namespace AgesOfCalradia.CampaignLabelVisibility
     }
 
     /// <summary>
-    /// Hides native settlement names once the campaign camera reaches the
-    /// 580-altitude political-overview cutoff. The World Events UI strategic
-    /// map owns its own permanent city labels independently.
+    /// Native target: SettlementNameplateVM.UpdateNameplateMT. Hides town
+    /// nameplates once the campaign camera reaches the 580-altitude political
+    /// overview so border artwork can be inspected on a clean map. Compatibility
+    /// risk is limited to the native
+    /// private _isTown and _bindIsVisibleOnMap fields; if Bannerlord changes
+    /// either field, Harmony rejects this isolated patch without changing the
+    /// political renderer or World Events UI. Source/assembly contract checks
+    /// and runtime Harmony ownership verification cover registration.
     /// </summary>
     [HarmonyPatch]
     internal static class SettlementNameplateZoomPatch
@@ -48,10 +53,12 @@ namespace AgesOfCalradia.CampaignLabelVisibility
 
         private static void Postfix(
             ref bool ____bindIsVisibleOnMap,
+            bool ____isTown,
             Vec3 cameraPosition)
         {
-            if (cameraPosition.z >= PoliticalOverviewStartAltitude)
+            if (cameraPosition.z >= PoliticalOverviewStartAltitude && ____isTown)
                 ____bindIsVisibleOnMap = false;
         }
     }
+
 }
